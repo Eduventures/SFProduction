@@ -1,0 +1,168 @@
+<apex:page controller="ProjectsDashboardController" tabStyle="Projects__c" >
+
+
+<script type="text/javascript">
+    function toggleDisplay(staffName){
+        var row =  document.getElementById(staffName+'milestones');
+        if (row.style.display == ''){ row.style.display = 'none';}
+        else {row.style.display = '';}
+        var plusToToggle =  document.getElementById(staffName+'plimg');
+        var minusToToggle =  document.getElementById(staffName+'miimg');
+        
+        if( plusToToggle.style.display == 'none')
+        {
+            minusToToggle.style.display = 'none';
+            plusToToggle.style.display = '';
+        
+        } else
+        {
+            plusToToggle.style.display = 'none';
+            minusToToggle.style.display = '';
+        }         
+    }
+    
+   function setSelected(projIndex) {  
+       addProjectForUpdate(projIndex);
+   }
+
+</script>
+
+<apex:form id="projectForm">
+
+<apex:actionFunction action="{!addProjectForUpdate}" name="addProjectForUpdate" reRender="projectInfo,buttonPanel">
+  <apex:param name="projIndex" value="" assignTo="{!projIndex}" />
+</apex:actionFunction>
+
+<apex:actionRegion >
+<apex:pageBlock title="Active ECS Projects ({!setCon.ResultSize})" id="projectInfo" >
+    <apex:outputPanel id="msgPanel">
+        <apex:pageMessages escape="false" />
+        <apex:pageMessage id="msg" escape="false" detail="{!message}" severity="info" rendered="{!message != ''}"></apex:pageMessage>
+    </apex:outputPanel>    
+    
+
+    <apex:pageBlockButtons location="top" >      
+    <apex:outputPanel id="buttonPanel">
+      <apex:commandButton action="{!previous}" disabled="{! !setCon.HasPrevious}" reRender="projectInfo" value="<< Previous {!setCon.PageSize} projects"></apex:commandButton>
+      viewing page {!pageNumber}
+      <apex:commandButton action="{!next}" disabled="{! !setCon.HasNext}" reRender="projectInfo" value="Next {!setCon.PageSize} projects >>"></apex:commandButton>
+      <apex:commandButton value="Save Edits" reRender="projectInfo" disabled="{!projectsToUpdate.size == 0}" action="{!save}" />
+      <apex:commandButton value="Cancel Edits" reRender="projectInfo,msgPanel" disabled="{!projectsToUpdate.size == 0}" action="{!cancel}" />
+    </apex:outputPanel>
+    </apex:pageBlockButtons>
+
+    <apex:outputPanel id="projectTable">
+    <table width="100%" class="list" >
+    <tr class="headerRow">
+         <th style="white-space:nowrap;" ><b>Project Name</b></th>
+         <th style="white-space:pre-wrap;" ><b>Created Date</b></th>
+         <th style="white-space:pre-wrap;" ><b>Estimated End</b></th>
+         <th style="white-space:pre-wrap;" ><b>Sold Project Hours</b></th>
+         <th style="white-space:pre-wrap;" ><b>Budgeted Project Hours</b></th> 
+         <th style="white-space:pre-wrap;" ><b>Booked Project Hours</b></th>     
+         <th style="white-space:pre-wrap;" ><b>Percent Complete</b></th>
+         <th style="white-space:pre-wrap;" ><b>Billable Hours</b></th>               
+         <th style="white-space:pre-wrap;" ><b>Stage</b></th>      
+         <th style="white-space:pre-wrap;" ><b>Variance</b></th> 
+         <th style="white-space:pre-wrap;" ><b>Active</b></th>               
+    </tr>
+    <apex:variable var="projectIndex" value="{!1}"/>
+    <apex:repeat value="{!activeProjects}" var="project" >
+    <tr onmouseout="if (window.hiOff){hiOff(this);} " onmouseover="if (window.hiOn){hiOn(this);} ">        
+         <td  style="white-space:nowrap;" class="dataCell"><apex:outputLink value="/apex/ProjectPMView?id={!project.Id}">{!project.Name}</apex:outputLink></td>
+         <td class="dataCell"><apex:outputField value="{!project.CreatedDate}"></apex:outputField></td>
+         <td class="dataCell"><apex:outputField value="{!project.Estimated_End_Date__c}"></apex:outputField></td>
+         <td class="dataCell">{!project.Estimated_Hours__c}</td>
+         <td class="dataCell">{!project.Milestone_Hours__c}</td> 
+         <td class="dataCell">{!project.Total_Hours_Calc__c}</td>    
+         <td class="dataCell">{!project.Complete_by_hours__c}</td>
+         <td class="dataCell">{!project.Billable_Hours__c}</td>               
+         <td class="dataCell"><apex:inputField value="{!project.Stage__c}" onchange="setSelected({!projectIndex})" /></td>      
+         <td class="dataCell" style="white-space:pre-wrap;{!if(project.Variance__c > 0.0,'background-color:#FF6666','')}"><apex:outputField value="{!project.Variance__c}" /></td>                
+         <td class="dataCell"><apex:inputField onclick="setSelected({!projectIndex})" value="{!project.Active__c}" /></td>
+    </tr>
+    <apex:variable var="projectIndex" value="{!projectIndex+1}"/>
+    </apex:repeat>        
+    </table>
+    </apex:outputPanel>    
+</apex:pageBlock>
+</apex:actionRegion>
+<apex:actionRegion >
+<apex:pageBlock title="Summary of Staff Utilization (by week)" id="staffInfo" >
+    <apex:pageBlockButtons location="top" >      
+      <apex:commandButton action="{!previousWeek}" reRender="staffInfo" value="<< Previous Week"></apex:commandButton>
+      <apex:outputText style="font-weight:bold;" value=" 
+          {0,date,MM/dd/yyyy} - {1,date,MM/dd/yyyy}"> 
+          <apex:param value="{!weekStart}"/>
+          <apex:param value="{!weekEnd}"/>
+      </apex:outputText>
+      <apex:commandButton action="{!nextWeek}" reRender="staffInfo" value="Next Week>>"></apex:commandButton> <br /> <br />
+    </apex:pageBlockButtons>
+
+
+    <apex:outputPanel id="staffTable">
+    <table width="100%" class="list">
+        <tr class="headerRow">
+            <th><b>Staff Member</b></th>
+            <th><b>Open Tasks this week</b></th>
+            <th><b>Hours Utilized</b></th>
+            <th><b>Work Week</b></th>
+            <th><b>Percent of Time Utilized</b></th>
+        </tr>
+        
+    <apex:repeat value="{!weeksData}" var="staffWeek">
+        <tr onmouseout="if (window.hiOff){hiOff(this);} " onmouseover="if (window.hiOn){hiOn(this);} ">
+        <td class="dataCell secondaryPalette">           
+            <b>
+                <apex:outputLink rendered="{!staffWeek.milestones.size != 0}" style="text-decoration:none;" value="javascript:toggleDisplay('{!staffWeek.staffMember.name}');">                  
+                <apex:outputPanel rendered="{!staffWeek.milestones.size != 0}" > 
+                    <img title="Show Milestone Details" id="{!staffWeek.staffMember.Name}plimg" alt="Show Milestone Details" src="{!$Resource.plusSign}"  />
+                    <img title="Hide Milestone Details" id="{!staffWeek.staffMember.Name}miimg" style="display:none;" alt="Hide Milestone Details" src="{!$Resource.minusSign}"  />
+                </apex:outputPanel>
+                
+                   {!staffWeek.staffMember.Name}
+                </apex:outputLink>
+                <apex:outputText rendered="{!staffWeek.milestones.size = 0}">{!staffWeek.staffMember.Name}</apex:outputText>
+            </b>
+        </td>
+        <td class="dataCell">{!staffWeek.milestones.size}</td>
+        <td class="dataCell">{!staffWeek.budgetedHours}</td>
+        <td class="dataCell">{!staffWeek.staffMember.Work_Week_Hours__c}</td>
+        <td class="dataCell">{!staffWeek.percentTimeBudgeted * 100 }%</td>
+        </tr>
+        <tr id="{!staffWeek.staffMember.Name}milestones" style="display:none" >
+            <td colspan="6" align="center">
+                <table width="85%" style="background-color:#EAEAEA">
+                    <tr>
+                        <td><b>Project</b></td>
+                        <td><b>Milestone</b></td>
+                        <td><b>Estimated Hrs</b></td>
+                        <td><b>Booked Hrs</b></td>
+                        <td><b>Start</b></td>
+                        <td><b>End</b></td>
+                        <td><b>Status</b></td>
+                    </tr>
+                <apex:repeat value="{!staffWeek.milestones}" var="milestone">
+                    <tr>
+                        <td>{!milestone.Project__r.Name}</td>
+                        <td><apex:outputLink value="/apex/ProjectPMView?id={!milestone.Project__c}&selected={!milestone.id}" title="Project:{!milestone.Project__r.name}"  target="_blank">{!milestone.Name}</apex:outputLink></td>
+                        <td>{!milestone.Estimated_Hours__c}</td>
+                        <td>{!milestone.Booked_Hours__c}</td>
+                        <td><apex:outputField value="{!milestone.Start__c}"/></td>
+                        <td><apex:outputField value="{!milestone.End__c}"/></td>
+                        <td><apex:outputField value="{!milestone.Status__c}"/></td>
+                    </tr>
+                </apex:repeat>
+                </table>
+            </td>
+        </tr>
+            
+    </apex:repeat> 
+    </table>
+    </apex:outputPanel>    
+</apex:pageBlock>
+</apex:actionRegion>
+</apex:form>
+
+
+</apex:page>

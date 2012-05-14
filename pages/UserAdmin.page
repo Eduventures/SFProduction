@@ -1,0 +1,37 @@
+<apex:page title="Mass Updating Users" controller="UserAdminController">
+<script>
+   function setSelected( textid) {
+       document.getElementById(textid).checked = true;
+   }
+</script>
+
+
+    <apex:form >
+        <apex:pageBlock id="mainBlock" >
+            <apex:pageMessages />
+            <apex:pageMessage id="msg"  detail="{!message}" severity="info"></apex:pageMessage>
+
+            <apex:pageBlockButtons >
+                <apex:commandButton value="Process Selected" action="{!processSelected}" />
+            </apex:pageBlockButtons>
+            
+
+            <apex:outputLabel value="Show inactive users" for="toggleInactive"/>
+            <apex:inputCheckbox id="toggleInactive" value="{!showInactive}">
+            <apex:actionSupport event="onclick" action="{!toggleInactive}" />
+            </apex:inputCheckbox>   
+            <!-- In our table we are displaying the cContact records -->
+            <apex:pageBlockTable value="{!Users}" onRowClick="setSelected('{!$Component.selectBox}');" var="u" id="table">
+                <apex:column headerValue="Update" >
+                    <!-- This is our selected Boolean property in our wrapper class -->
+                    <apex:inputCheckbox id="selectBox" value="{!u.selected}" />
+                </apex:column>
+                <!-- This is how we access the contact values within our cContact container/wrapper -->
+                <apex:column value="{!u.usr.Name}" />
+                <apex:column headerValue="Role"> <apex:inputField required="false" value="{!u.usr.UserRoleId}" /> </apex:column>
+                <apex:column headerValue="Profile"> <apex:inputField value="{!u.usr.ProfileId}" /> </apex:column>
+                <apex:column headerValue="Active"> <apex:inputField value="{!u.usr.IsActive}" /> </apex:column>
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,300 @@
+<apex:page standardController="EVQuote__c" extensions="QuoteToPDF"  showHeader="false" standardStylesheets="true" 
+ tabStyle="EVQuote__c" renderAs="pdf"  >
+<head>
+    <style type="text/css" media="all"> 
+    ul{
+        margin-left:10px;
+    }
+    td {
+        vertical-align:top;
+    }
+    
+    @page {
+        size: 8.5in 11in;
+        @top-center { 
+          }
+    }
+    </style>
+</head>
+<apex:outputText value="{!EVQuote__c.Account__c }" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Status__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Primary_Contact__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Calculated_Discount__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Calculated_List_Price__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Price__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Product_Group__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Offer_Expiration_Date__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Contract_Length__c}" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Hybrid__c }" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Fee_info__c }" rendered="false" />
+<apex:outputText value="{!EVQuote__c.LOA_Start_Date__c }" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Owner.Name }" rendered="false" /> 
+<apex:outputText value="{!EVQuote__c.AMM_Pass_Count__c }" rendered="false" /> 
+<apex:outputText value="{!EVQuote__c.Custom_Analysis_Limit__c}" rendered="false" /> 
+<apex:outputText value="{!EVQuote__c.Member_Roundtable_Access__c }" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Strategy_Session_Access__c }" rendered="false" />
+<apex:outputText value="{!EVQuote__c.Website_Access__c}" rendered="false" />
+<apex:pageMessages escape="false"  />
+<div style="text-align:center"><img src="{!$Resource.ev_master_logo}" style="width:1in;" /></div>
+<table style="height:100%;width:100%;font-size:10px;">
+    <tr> 
+        <td><b>Membership Agreement</b><br /></td>
+        <td style="text-align:right;"><apex:outputField value="{!theAccount.Name}" /><br />{!todaysDate}<br />
+        Quote # {!EVQuote__c.Name}<br /></td>
+    </tr>
+</table>
+      
+    <apex:outputPanel rendered="{!if(OR(lcnames!= '',rlnames!= ''),true,false)}">
+    <table style="height:100%;width:100%;font-size:10px;">
+        <!-- Proposed Business Relationship    -->
+        <tr> 
+            <td colspan="2"><b>Proposed Business Relationship</b><br />
+            <apex:outputText escape="false" value="{!pbr}"></apex:outputText> 
+            <br /></td> 
+        </tr>
+        <!-- Fee -->
+        <tr> 
+            <td colspan="2"><b>Fee</b><br />
+            <b><apex:outputField value="{!theQuote.Price__c}" /></b> &nbsp;<apex:outputField value="{!theQuote.Fee_info__c}" /><br />
+                <apex:outputPanel rendered="{!if(theQuote.Calculated_Discount__c > 0,true,false)}">
+                  [This fee is discounted from the regular {! ROUND(theQuote.Contract_Length__c,0)} month subscription fee of&nbsp; 
+                  <apex:outputField value="{!theQuote.Calculated_List_Price__c}" /> and is available until 
+                  <b><apex:outputText value=" !MISSING DATE! " rendered="{!if( ISNULL(theQuote.Offer_Expiration_Date__c),true, false)}" />
+                  <apex:outputField value="{!theQuote.Offer_Expiration_Date__c}" /></b>.] 
+                </apex:outputPanel>
+            <br /></td>
+        </tr> 
+        <!-- Term -->
+        <tr> 
+            <td colspan="2"><b>Term</b><br />
+            <apex:outputText escape="false" value="{!terms}"></apex:outputText>            <br /> 
+            <apex:outputPanel id="lcnames" rendered="{!if(lcnames!= '',true,false)}">
+                <table align="center" border="1" style="background-color:#CCCCCC;font-size:10px;width:90%;" cellspacing="0" cellpadding="5px">
+                  <tr>
+                    <td><strong><em>{!lcnames}</em></strong> <br />
+                    Eduventures will provide Member with access to the following during the membership term:</td>
+                  </tr>
+                </table>
+                <table align="center" border="1" style="background-color:#CCCCCC;font-size:10px;width:90%;" cellspacing="0" cellpadding="5px" >
+                  <tr>
+                    <td style="display:{!if(theQuote.Website_Access__c,'','none')}"><u>Research    Library:</u><br />
+                        <ul>
+                          <li>Collaborative Research</li>
+                          <li>Custom Analysis</li>
+                          <li>Member Roundtable and Annual Member Meeting presentations</li>
+                    </ul></td>
+                    <td width="35%" ><u>Forthcoming    Research:</u><br />
+                        <ul>
+                          <li>Collaborative Research</li>
+                          <li>Custom Analysis* <apex:outputText rendered="{!NOT(ISNULL(theQuote.Custom_Analysis_Limit__c))}" escape="false"> - LIMIT of {!TEXT(theQuote.Custom_Analysis_Limit__c)} Total</apex:outputText></li>
+                          <ul style="list-style-type:circle;margin-left:20px;margin-top:0px;">
+                              <li>Custom Inquiry</li>
+                              <li>Custom Research Reports</li>
+                              <li>Membership Q&amp;As</li>
+                          </ul>
+                    </ul></td>
+                    <td ><u>Implementation    Support Services:</u><br />
+                        <ul>
+                          <li>Analyst Discussions</li>
+                          <apex:outputText rendered="{!theQuote.Member_Roundtable_Access__c}" escape="false"><li>Member Roundtables</li></apex:outputText>
+                          <li><apex:outputText value="{! TEXT(theQuote.AMM_Pass_Count__c)}" /> complimentary pass(es) to the  Annual Member Meeting</li>
+                          <apex:outputText rendered="{!theQuote.Strategy_Session_Access__c}" escape="false"><li>Strategy Sessions via webinar*</li></apex:outputText>
+                    </ul></td>
+                  </tr>
+                </table>
+                <table align="center" border="0" style="font-size:10px;width:90%;" cellspacing="0" cellpadding="5px" >
+                    <tr>
+                        <td>
+                        <apex:outputPanel layout="none" rendered="{! NOT(theQuote.Hybrid__c)}">                    
+                            *Custom Analysis and Strategy Sessions are available as needed, provided that Member  limits its requests to one at 
+                            a time. Members may elect to have one or more  Eduventures researchers deliver a strategy session on their campus, in which 
+                            case preapproved related expenses, including travel, will be billed to the  member at cost.
+                        </apex:outputPanel>                      
+                        <apex:outputPanel layout="none" rendered="{! theQuote.Hybrid__c}">
+                            *Custom Analysis and Strategy Sessions are available as needed, provided that Member limits its requests to 
+                            one at a time. For the purposes of this membership, all Custom Analysis and Strategy Session requests will be placed into
+                            one queue, to be executed successively, whether requests are made to the one LC or both. Members may elect to 
+                            have one or more Eduventures researchers deliver a strategy session on their campus, in which case preapproved related 
+                            expenses, including travel, will be billed to the member at cost.
+                        </apex:outputPanel>   
+                        </td>
+                    </tr>
+                </table>   
+            </apex:outputPanel>
+            <apex:outputPanel id="rlnames" rendered="{!if(rlnames != '',true,false)}">
+                <table align="center" border="1" style="background-color:#CCCCCC;font-size:10px;width:90%;" cellspacing="0" cellpadding="5px">
+                  <tr>
+                    <td valign="top"><strong><em>{!rlnames}</em></strong> <br />
+                    Eduventures will provide Member with access to the following during the membership term: </td>
+                  </tr>
+                </table>
+                <table align="center" border="1" style="background-color:#CCCCCC;font-size:10px;width:90%;" cellspacing="0" cellpadding="5px" >
+                  <tr>
+                    <td><u>Research    Library:</u><br />
+                        <ul>
+                          <li>Collaborative Research</li>
+                          <li>Custom Analysis</li>
+                          <li>Member Roundtable and Annual Member Meeting presentations</li>
+                    </ul></td>
+                     <td style="display:{!if( OR(theQuote.AMM_Pass_Count__c > 0,theQuote.Member_Roundtable_Access__c), '','none')}" ><u>Implementation    Support Services:</u><br />
+                        <ul>
+                          <apex:outputText rendered="{!theQuote.Member_Roundtable_Access__c}" escape="false"><li>Member Roundtables</li></apex:outputText>
+                          <apex:outputText rendered="{!if(AND(lcnames == '',theQuote.AMM_Pass_Count__c > 0),true,false)}" escape="false"><li>{! TEXT(theQuote.AMM_Pass_Count__c)} complimentary pass(es) to the  Annual Member Meeting</li></apex:outputText>
+                          <apex:outputText rendered="{!if(AND(lcnames == '',theQuote.Strategy_Session_Access__c),true,false)}" escape="false"><li>Strategy Sessions via webinar*</li></apex:outputText>
+                          <apex:outputText rendered="{!if(AND(lcnames == '',theQuote.Custom_Analysis_Limit__c > 0),true,false)}" escape="false"><li>Custom Analysis* - LIMIT of {!TEXT(theQuote.Custom_Analysis_Limit__c)} Total</li></apex:outputText>
+                    </ul></td>
+                  </tr>
+                </table>
+                <apex:outputPanel layout="none" rendered="{!if( AND( lcnames == '', OR(theQuote.Strategy_Session_Access__c,theQuote.Custom_Analysis_Limit__c > 0)),true,false)}">  
+                <table align="center" border="0" style="font-size:10px;width:90%;" cellspacing="0" cellpadding="5px" >
+                    <tr>
+                        <td>
+                        *<apex:outputPanel layout="none" rendered="{!theQuote.Custom_Analysis_Limit__c > 0}"> Custom Analysis <apex:outputText value="{!if(theQuote.Strategy_Session_Access__c, ' and ', ' is ')}"> </apex:outputText></apex:outputPanel>
+                        <apex:outputText rendered="{!theQuote.Strategy_Session_Access__c}"> Strategy Sessions are</apex:outputText> available as needed, provided that Member  limits its requests to one at 
+                        a time. Members may elect to have one or more  Eduventures researchers deliver a strategy session on their campus, in which 
+                        case preapproved related expenses, including travel, will be billed to the  member at cost.
+                        </td>
+                    </tr>
+                </table> 
+                </apex:outputPanel> 
+            </apex:outputPanel>               
+            <br /></td>
+        </tr> 
+        </table>
+        </apex:outputPanel>
+    <apex:outputPanel rendered="{!includesSEM}">
+    <table style="height:100%;width:100%;font-size:10px;">
+        <!-- Proposed Business Relationship    -->
+        <tr> 
+            <td colspan="2"><b>Proposed Business Relationship</b><br />
+            Eduventures proposes that {!theAccount.Name} (“Member”) join the Eduventures Enrollment Management Learning Collaborative (EM-LC),
+             – Strategic Enrollment Essentials on the following terms: 
+            <br /></td> 
+        </tr>
+        <!-- Fee -->
+        <tr> 
+            <td colspan="2"><b>Fee</b><br />
+            <b><apex:outputField value="{!theQuote.Price__c}" /></b> 
+                <apex:outputPanel rendered="{!if(theQuote.Calculated_Discount__c > 0,true,false)}">
+                  [This fee is discounted from the regular {! ROUND(theQuote.Contract_Length__c,0)} month subscription fee of&nbsp; 
+                  <apex:outputField value="{!theQuote.Calculated_List_Price__c}" /> and is available until 
+                  <b><apex:outputText value=" !MISSING DATE! " rendered="{!if( ISNULL(theQuote.Offer_Expiration_Date__c),true, false)}" />
+                  <apex:outputField value="{!theQuote.Offer_Expiration_Date__c}" /></b>.] 
+                </apex:outputPanel>
+            <br /></td>
+        </tr> 
+        <!-- Term -->
+        <tr> 
+            <td colspan="2"><b>Term</b><br />
+            <apex:outputText escape="false" value="{!terms}"></apex:outputText>            <br /> 
+            <apex:outputPanel >
+                <table align="center" border="1" style="background-color:#CCCCCC;font-size:10px;width:90%;" cellspacing="0" cellpadding="5px">
+                  <tr>
+                    <td><strong><em>Enrollment Management Learning Collaborative - </em></strong> <br />
+                    Eduventures will provide Member with access to the following during the membership term:</td>
+                  </tr>
+                </table>
+                <table align="center" border="1" style="background-color:#CCCCCC;font-size:10px;width:90%;" cellspacing="0" cellpadding="5px" >
+                  <tr>
+                    <td style="display:{!if(theQuote.Website_Access__c,'','none')}"><u>Research    Library:</u><br />
+                        <ul>
+                          <li>Collaborative Research</li>
+                          <li>Custom Analysis</li>
+                          <li>Member Roundtable and Annual Member Meeting presentations</li>
+                    </ul></td>
+                    <td width="35%" ><u>Forthcoming    Research:</u><br />
+                        <ul>                        
+                          <li>(2) Collaborative Research Projects</li>
+                          <ul style="list-style-type:circle;margin-left:20px;margin-top:0px;">
+                              <li>Annual student survey</li>
+                              <li>Annual benchmarking survey</li>
+                          </ul>
+                          <li>Tailored recommendations about your institution</li>
+                          <ul style="list-style-type:circle;margin-left:20px;margin-top:0px;">
+                              <li>Messaging, media, and competitive positioning</li>
+                              <li>Strategic planning</li>
+                              <li>Budgeting and staffing</li>
+                          </ul>
+                    </ul></td>
+                    <td ><u>Implementation    Support Services:</u><br />
+                        <ul>
+                          <li>Analyst Discussions</li>
+                          <apex:outputText rendered="{!theQuote.Member_Roundtable_Access__c}" escape="false"><li>Member Roundtables</li></apex:outputText>
+                          <li><apex:outputText value="{! TEXT(theQuote.AMM_Pass_Count__c)}" /> complimentary pass(es) to the  Annual Member Meeting</li>
+                          <apex:outputText rendered="{!theQuote.Strategy_Session_Access__c}" escape="false"><li>Strategy Sessions via webinar*</li></apex:outputText>
+                    </ul></td>
+                  </tr>
+                </table>
+                <table align="center" border="0" style="font-size:10px;width:90%;" cellspacing="0" cellpadding="5px" >
+                    <tr>
+                        <td>* Strategy sessions are delivered by webinar. Members may elect to have one or more Eduventures researchers deliver a strategy 
+                            session on their campus, in which case preapproved related expenses, including travel, will be billed to the member at cost.  
+                        </td>
+                    </tr>
+                </table>   
+            </apex:outputPanel>              
+            <br /></td>
+        </tr> 
+        </table>
+        </apex:outputPanel>
+<table style="height:100%;width:100%;font-size:10px;">       
+<!-- Payment Terms -->
+    <tr> 
+        <td colspan="2"><b>Payment Terms</b><br />
+        <apex:outputText value="{!EVQuote__c.Payment_Terms__c}" escape="false"></apex:outputText>
+        <br /><br /></td>
+    </tr> 
+<!-- Additional Terms -->
+    <tr> 
+        <td colspan="2"><b>Additional Terms</b><br />
+        <u>Intellectual  Property: </u><strong> </strong>Eduventures  Learning Collaborative membership provides Member with access to Eduventures 
+        Learning Collaborative research and research services for the Term. During this  time, Eduventures Learning Collaborative research is available
+         to Member, but  remains the property of Eduventures and may not be redistributed by Member in  any form without Eduventures’ prior written permission.<br />
+        
+        <p><u>Confidentiality:</u>   The success of the Learning  Collaborative depends upon information-sharing among its members. Learning  Collaborative members 
+        are encouraged to share relevant experience and data as  freely as possible. Upon request, Eduventures will remove identifying  information from any 
+        material deemed sensitive by Member.</p>
+        <p>Eduventures  also understands that some of the information provided to us must be maintained  in strict confidence. Maintaining 
+        the confidentiality of your proprietary  information is important to Eduventures. Accordingly, you may request in  writing that 
+        certain information you disclose to Eduventures be treated  confidentially, and Eduventures agrees that it will not use or disclose such 
+        information except as required by law or as required to perform its services  for you. You agree that Eduventures may use and disclose any 
+        aggregated, non-personally identifiable data, information, and knowledge that it creates and/or that  results from the services being 
+        provided to you pursuant to this Agreement.</p>
+        
+        By signing below, you consent to the terms above. Please fax to the attention of&nbsp;<apex:outputText value=" {!theQuote.Owner.Name}"></apex:outputText> at 617-830-0551.
+        <br /><br /><br /></td>
+    </tr> 
+<!-- Sig -->
+    <tr style="page-break-inside:avoid;"> 
+        <td valign="top" style="width:50%;">Date: __________________________________________<br /><br /><br />
+            Signature: __________________________________________<br />
+            Alicia Marie Martinelli<br />
+            Managing Vice President<br />
+            Finance &amp; Operations<br />
+            Eduventures, Inc.<br />
+            101 Federal Street, 12th Floor<br />
+            Boston, MA 02110<br />
+            Phone 617-532-6018<br />
+            Fax 617-830-0551<br />
+            amartinelli@eduventures.com<br />
+        </td>
+        <td valign="top" style="width:50%;white-space:nowrap;">Date: __________________________________________<br /><br /><br />
+            Signature: __________________________________________<br />
+            {!thePrimaryContact.Name}<br />
+            {!thePrimaryContact.Title}<br />
+            {!thePrimaryContact.Account.Name}<br />
+            <apex:outputText style="white-space:pre;" value="{!thePrimaryContact.MailingStreet}" escape="false" /><br />
+            {!thePrimaryContact.MailingCity}, {!thePrimaryContact.MailingState} {!thePrimaryContact.MailingPostalCode}<br />
+            Phone {!thePrimaryContact.Phone}<br />
+            Fax {!thePrimaryContact.Fax}<br />
+            Email {!thePrimaryContact.Email}<br />
+            <br /><br />
+            Billing Contact Information (please complete)<br />
+            Name  __________________________________________<br />
+            Phone __________________________________________<br />
+            Email __________________________________________<br />
+            Fax __________________________________________<br />
+        </td>
+    </tr> 
+</table>    
+</apex:page>

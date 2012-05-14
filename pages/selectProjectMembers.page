@@ -1,0 +1,56 @@
+<apex:page tabStyle="ProjectMember__c" controller="BES_clsSelectProjectMembers" sidebar="false" showHeader="false">
+    <script>
+         function populateParent(obj)
+         {
+             var trNode = obj.parentNode.parentNode;
+             var tdNodes = trNode.getElementsByTagName('td');
+             var userId = (tdNodes[0].getElementsByTagName('span')[0]).innerHTML;
+             var userName = (tdNodes[1].getElementsByTagName('a')[0]).innerHTML;
+             if(top.window.opener.isDuplicate(userId))
+             {
+                 alert("Sorry!! This user has been already selected by you");
+                 
+             }
+             else
+             {
+                 top.window.opener.setSelectedUserDetails(userId , userName);
+                 
+             }
+             return false;
+         }
+        
+     </script>
+ 
+    <apex:sectionHeader title="Search project members" />
+     <apex:form >
+         <apex:outputPanel >
+                 <table id="tblSearch">
+                     <tr>
+                         <td><B>Search</B></td>
+                         <td><apex:InputText value="{!likeString}"/></td>
+                         <td><apex:CommandButton value="Go!" action="{!searchUsers}" reRender="detail"/></td>
+                     </tr>    
+                 </table>
+        </apex:outputPanel>
+        <br/>
+        <br/>
+        <apex:outputPanel id="detail" >
+            <apex:pageBlock title="Choose member">
+                <apex:pageBlockTable value="{!Users}" var="user">
+                    <apex:column >
+                       <span style="display: none" width="0">{!user.Id}</span>
+                    </apex:column>
+                    <apex:column headerValue="Name">
+                        <apex:outputLink value="" onClick="return populateParent(this)">{!user.FirstName} {!user.LastName}</apex:outputLink>
+                    </apex:column>
+                    <apex:column headerValue="Profile" >
+                        <apex:outputLink value="" onClick="return populateParent(this)">{!user.Profile.Name} </apex:outputLink>
+                    </apex:column>
+                    <apex:column headerValue="Role" >
+                        <apex:outputLink value="" onClick="return populateParent(this)">{!user.UserRole.Name} </apex:outputLink>
+                    </apex:column>
+                </apex:pageBlockTable> 
+            </apex:pageBlock>
+        </apex:outputPanel>
+    </apex:form> 
+</apex:page>

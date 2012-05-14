@@ -1,0 +1,28 @@
+<apex:page controller="MemberActivityProjectsViewController" showHeader="false" sidebar="false" tabStyle="LOA__c" >
+
+<apex:form >
+<apex:pageBlock >
+   
+    <apex:pageBlockTable align="center" width="100%"  value="{!projectsList}"  var="sp">
+    <apex:column headerValue="Project Type">{!sp.theProject.Product__c}</apex:column>
+    <apex:column headerValue="Project Name"><apex:commandLink action="{!selectP}" title="Last Modified {!sp.theProject.LastModifiedDate}" rerender="pdetail">{!sp.theProject.Name}<apex:param name="pid" value="{!sp.theProject.id}"/></apex:commandLink></apex:column>
+    <apex:column headerValue="Project Status">{!sp.theProject.Stage__c}</apex:column>
+    <apex:column headerValue="New Project Hours">{!sp.total_new_hours}</apex:column>
+    <apex:column headerValue="Total Project Hours">{!sp.theProject.Total_Hours_Calc__c}</apex:column>
+    <apex:column headerValue="Created"><apex:outputField value="{!sp.theProject.CreatedDate}" /> </apex:column>
+    <apex:column headerValue="Modified"><apex:outputField value="{!sp.theProject.LastModifiedDate}" /> </apex:column>
+    <apex:column headerValue="Actual Delivery Date"><apex:outputField value="{!sp.theProject.Actual_Delivery_Date__c}" /> </apex:column>
+    <apex:column headerValue="End Date"><apex:outputField value="{!sp.theProject.End_Date__c}" /></apex:column>
+    </apex:pageBlockTable>
+
+    <apex:outputPanel id="pdetail" > <b>Timesheet hours logged for this time period, by User</b>
+        <apex:pageBlockTable title="User Hours (new)" value="{!selectedProject.projectHours}" var="entry" >
+            <apex:column headerValue="Staff Member" value="{!entry.fullName}"/>
+            <apex:column headerValue="Hours" value="{!entry.totalHours}"/>
+        </apex:pageBlockTable>
+        <apex:detail subject="{!$CurrentPage.parameters.pid}" inlineEdit="true" relatedList="false" title="false"/>
+    </apex:outputPanel> 
+
+</apex:pageBlock>
+</apex:form>
+</apex:page>

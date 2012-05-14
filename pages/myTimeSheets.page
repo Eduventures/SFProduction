@@ -1,0 +1,760 @@
+<apex:page tabStyle="My_Time_Sheets__tab" Controller="BES_clsMyTimeSheetsController" sidebar="false">
+<head>
+    <style>
+    .greenText
+    {
+        font-weight: bold;
+        color: green;     
+    }
+    .plainText
+    {
+             
+    }
+    .redText
+    {
+       font-weight: bold;
+       color: red;
+
+    }
+    .orangeText
+    {
+       font-weight: bold;
+       color: orange;
+
+    }
+    .magentaText
+    {
+       font-weight: bold;
+       color: magenta;
+
+    }
+    .silverBackground
+    {
+        background-color: Silver;
+        font-weight: bold;
+    }
+    </style>
+    
+    <script src="/soap/ajax/13.0/connection.js"></script> 
+    <script src="/soap/ajax/13.0/plsoql.js"></script> 
+    <script>
+        var userId = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(uId,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+        var sId = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE($Api.Session_ID,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';;
+        var fromDateId;
+        var toDateId;
+        var serachTimeSheetsId;
+        var durationId;
+    </script> 
+    <script>
+        //Calendar related scripts
+       
+        function openDatePicker(objId)
+        {
+            DatePicker.pickDate(false, objId, false);
+        }
+    </script>
+    <script>
+        //Project popup
+        function showProjects(obj)
+        {
+            var timeSheetId = ((obj.getElementsByTagName('td')[0]).getElementsByTagName('input')[0]).value;
+            var url = "../apex/showProjectTimeSheetLines?id="+timeSheetId;
+            if(timeSheetId != '' && timeSheetId != null)
+            {
+                openWind(url);
+            }
+            return false;
+        }
+         function openWind(URL)
+        {
+            curPopupWindow  = window.open(URL, "_blank","width=500, height=500,dependent=no,resizable=yes,toolbar=no,status=no,directories=no,menubar=no,scrollbars=1", true);
+        }
+    </script>
+    <script>
+        function goToLineItems(weekString, obj)
+        {
+           
+           if(obj.value=="Create")
+           {
+               var urlTo = "../apex/addTimeSheet?week="+weekString+"&from="+document.getElementById(fromDateId).value+"&to="+document.getElementById(toDateId).value; 
+           }
+           if(obj.value=="Edit")
+           {
+                var trNode = (obj.parentNode.parentNode); 
+                var editId = ((trNode.getElementsByTagName('td')[0]).getElementsByTagName('input')[0]).value;
+                var urlTo = "../apex/editTimeSheet?id="+editId+"&from="+document.getElementById(fromDateId).value+"&to="+document.getElementById(toDateId).value; 
+                     
+           }
+           if(obj.value=="View")
+           {
+                var trNode = (obj.parentNode.parentNode); 
+                var editId = ((trNode.getElementsByTagName('td')[0]).getElementsByTagName('input')[0]).value;
+                var urlTo = "../apex/viewTimeSheet?id="+editId+"&from="+document.getElementById(fromDateId).value+"&to="+document.getElementById(toDateId).value;
+           }
+           window.parent.frames.location.href = urlTo ; 
+           return false;
+        }
+    </script>
+    <script>
+       
+        var thisWeekStartString = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(thisWeekStartString,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+        var thisMonthStartString = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(thisMonthStartString,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+        function highlightThisWeek()
+        {
+            var tsSpan =  document.getElementById('spTsTable');
+            var tsTable = tsSpan.getElementsByTagName('table')[0];
+            var trArray = tsTable.getElementsByTagName('tr');
+            if(trArray.length < 2)
+            {
+                return;
+            }
+            for(var i = 1; i < trArray.length; i++)
+            {
+                var wkStr = (trArray[i].getElementsByTagName('td')[1]).innerHTML;
+                if(wkStr == thisWeekStartString)
+                {
+                    trArray[i].className = 'silverBackground';
+                    break;
+                }
+            }
+        }
+    </script>
+    <script>
+        /** For hours chart **/
+        
+        var arrWeekDayNames;
+        var weekStartDate =  makeJsDate(thisWeekStartString);
+        var weekStartDayIndex = weekStartDate.getDay();
+        if(weekStartDayIndex == 0)
+        {
+            arrWeekDayNames = new Array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
+        }
+        else
+        {
+            arrWeekDayNames = new Array('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
+        }
+        var arrThisWeekSplit = new Array();
+        for(var i = 0; i < 7; i++)
+        {
+            var obj = new data();
+            obj.label = makeSfJsDate(new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate()-0+i));
+            obj.value = 0;
+            obj.dayName = arrWeekDayNames[i]; 
+            arrThisWeekSplit.push(obj); 
+        }
+        
+        
+        var arrThisMonthSplit = new Array();
+        var monthStartDate = makeJsDate(thisMonthStartString);
+        if(monthStartDate.getDay() != weekStartDayIndex)
+        {
+            var obj = new data();
+            obj.label = monthStartDate.getDate();
+            obj.value = 0;
+            obj.dayName = "Week "+(arrThisMonthSplit.length+1)+"";
+            arrThisMonthSplit.push(obj);
+        }
+        var daysInMonth = getDaysInMonth(monthStartDate.getMonth(), monthStartDate.getFullYear());
+        for(var i = 0; i < daysInMonth; i++)
+        {
+            var nextDate = new Date(monthStartDate.getFullYear(), monthStartDate.getMonth(), monthStartDate.getDate()-0+i) 
+            if(nextDate.getDay() == weekStartDayIndex)
+            {
+                var obj = new data();
+                obj.label = nextDate.getDate();
+                obj.value = 0;
+                obj.dayName = "Week "+(arrThisMonthSplit.length+1)+"";
+                arrThisMonthSplit.push(obj);
+            }
+        }
+        var arrQarterMonthNames;
+        var arrThisQuarterSplit = new Array();
+        var thisMonthNumber = monthStartDate.getMonth()+1;
+        var thisQuarterNumber;
+        if(thisMonthNumber >= 1 && thisMonthNumber <= 3)
+        {
+            arrQarterMonthNames = new Array('January', 'February', 'March');
+            thisQuarterNumber = 1;
+        }
+        if(thisMonthNumber >= 4 && thisMonthNumber <= 6)
+        {
+            arrQarterMonthNames = new Array('April', 'May', 'June');
+            thisQuarterNumber = 2;
+        }
+        if(thisMonthNumber >= 7 && thisMonthNumber <= 9)
+        {
+            arrQarterMonthNames = new Array('July', 'August', 'September');
+            thisQuarterNumber = 3;
+        }
+        if(thisMonthNumber >= 10 && thisMonthNumber <= 12)
+        {
+            arrQarterMonthNames = new Array('October', 'November', 'December');
+            thisQuarterNumber = 4;
+        }
+        for(var i = 0; i < 3; i++)
+        {
+            var obj = new data();
+            obj.label = padZero(parseInt(((thisQuarterNumber-1) * 3)+(i+1))); // This will have padded month numbers in current quarter (01 for January, 12 for December)  
+            obj.value = 0;
+            obj.dayName = arrQarterMonthNames[i]; 
+            arrThisQuarterSplit.push(obj); 
+        }
+        var arrThisYearSplit = new Array();
+        for(var i = 0; i < 4; i++)
+        {
+            var obj = new data();
+            obj.label = padZero(i+1)  
+            obj.value = 0;
+            obj.dayName = "Quarter "+(i+1); 
+            arrThisYearSplit.push(obj); 
+        }
+               
+        function makeHoursChart()
+        {
+            var noOfBillableTasksHours = 0;
+            var noOfNonBillableTasksHours = 0;
+            var param = (document.getElementById(durationId).value)
+            sforce.connection.sessionId = sId;
+            refreshGlobalChartArrays();
+            if(param == "this_week")
+            {
+                var qry = "SELECT Id, Date__c, Hour__c, TaskType__r.Billable__c FROM TimeSheetLine__c WHERE Date__c = this_week AND Timesheet__r.OwnerId='"+userId+"'";
+                var result = sforce.connection.query(qry);
+                var queryMore = true;
+                while(queryMore) 
+                {
+                    var records = result.getArray("records");
+                    for (var i = 0; i < records.length; i++) 
+                    {
+                        if(records[i].TaskType__r.Billable__c == "true")
+                        {
+                            noOfBillableTasksHours += parseFloat(records[i].Hour__c);
+                        }
+                        else
+                        {
+                            noOfNonBillableTasksHours += parseFloat(records[i].Hour__c);;
+                        }
+                        for(var j = 0; j < arrThisWeekSplit.length; j++)
+                        {
+                            
+                            if(records[i].Date__c == arrThisWeekSplit[j].label)
+                            {
+                                arrThisWeekSplit[j].value += parseFloat(records[i].Hour__c);
+                            }
+                        } 
+                    }
+                    if (result.getBoolean("done")) 
+                    {
+                        queryMore = false;
+                    } 
+                    else 
+                    {
+                        result = sforce.connection.queryMore(result.queryLocator);
+                    }
+                }
+                var labelString ='';
+                var valueString = '';
+                var markerString = '';
+                for(var j = 0; j < arrThisWeekSplit.length; j++)
+                {
+                    //Changed
+                    var thisWeekSplitJValue = Math.round(arrThisWeekSplit[j].value*100)/100;
+                    thisWeekSplitJValue = thisWeekSplitJValue.toFixed(2);
+                    //Changed
+                    if(j != (arrThisWeekSplit.length-1))
+                    {
+                        labelString += arrThisWeekSplit[j].dayName+'|';
+                        //Changed
+                        valueString += thisWeekSplitJValue+',';                        
+                        markerString += "t"+thisWeekSplitJValue+",000000,0,"+j+",13,0|";
+                    }
+                    else
+                    {
+                        labelString += arrThisWeekSplit[j].dayName;
+                        valueString += thisWeekSplitJValue;
+                        markerString += "t"+thisWeekSplitJValue+",000000,0,"+j+",13,0";
+                    } 
+                }
+                
+                document.getElementById("imgHoursChart").src = "http://chart.apis.google.com/chart?cht=lc&chd=t:"+valueString+"&chs=500x130&chf=c,lg,45,ffffff,0,76A4FB,0.75%7Cbg,s,EFEFEF&chco=FF0000&chxt=x,y&chl="+labelString + "&chtt=Logged Hours&chm="+markerString;   
+            }
+            if(param == "this_month")
+            {
+                var qry = "SELECT Id, Date__c, Hour__c, TaskType__r.Billable__c FROM TimeSheetLine__c WHERE Date__c = this_month AND Timesheet__r.OwnerId='"+userId+"'";
+                var result = sforce.connection.query(qry);
+                var queryMore = true;
+                while(queryMore) 
+                {
+                    var records = result.getArray("records");
+                    for (var i = 0; i < records.length; i++) 
+                    {
+                        if(records[i].TaskType__r.Billable__c == "true")
+                        {
+                            noOfBillableTasksHours += parseFloat(records[i].Hour__c);
+                        }
+                        else
+                        {
+                            noOfNonBillableTasksHours += parseFloat(records[i].Hour__c);;
+                        }
+                        
+                        var myDate =  records[i].Date__c;
+                        var dayPart = unPadZero(myDate.split('-')[2]);
+                        for(var j = (arrThisMonthSplit.length-1); j > -1 ; j--)
+                        {
+                            if(arrThisMonthSplit[j].label <= dayPart)
+                            {
+                                arrThisMonthSplit[j].value +=  parseFloat(records[i].Hour__c);
+                                break;
+                            }
+                        } 
+                    }
+                    if (result.getBoolean("done")) 
+                    {
+                        queryMore = false;
+                    } 
+                    else 
+                    {
+                        result = sforce.connection.queryMore(result.queryLocator);
+                    }
+                }
+                var labelString ='';
+                var valueString = '';
+                var markerString = '';
+                for(var j = 0; j < arrThisMonthSplit.length; j++)
+                {
+                    //Changed
+                     var thisMonthSplitJValue = Math.round(arrThisMonthSplit[j].value*100)/100;
+                    thisMonthSplitJValue = thisMonthSplitJValue.toFixed(2);
+                    //Changed
+                    if(j != (arrThisMonthSplit.length-1))
+                    {
+                        labelString += arrThisMonthSplit[j].dayName+'|';
+                        //Changed
+                        valueString += thisMonthSplitJValue+',';
+                        markerString += "t"+thisMonthSplitJValue+",000000,0,"+j+",13,0|";
+                    }
+                    else
+                    {
+                        labelString += arrThisMonthSplit[j].dayName;
+                        //Changed
+                        valueString += thisMonthSplitJValue;
+                        markerString += "t"+thisMonthSplitJValue+",000000,0,"+j+",13,0";
+                    } 
+                }
+                document.getElementById("imgHoursChart").src = "http://chart.apis.google.com/chart?cht=lc&chd=t:"+valueString+"&chs=500x130&chf=c,lg,45,ffffff,0,76A4FB,0.75%7Cbg,s,EFEFEF&chco=FF0000&chxt=x,y&chl="+labelString + "&chtt=Logged Hours&chm="+markerString;  
+            }   
+            if(param == "this_quarter")
+            {
+                var qry = "SELECT Id, Date__c, Hour__c, TaskType__r.Billable__c FROM TimeSheetLine__c WHERE Date__c = this_quarter AND Timesheet__r.OwnerId='"+userId+"'";
+                var result = sforce.connection.query(qry);
+                var queryMore = true;
+                while(queryMore) 
+                {
+                    var records = result.getArray("records");
+                    for (var i = 0; i < records.length; i++) 
+                    {
+                        for(var j = 0; j < arrThisQuarterSplit.length; j++)
+                        {
+                            if(records[i].TaskType__r.Billable__c == "true")
+                            {
+                                noOfBillableTasksHours += parseFloat(records[i].Hour__c);
+                            }
+                            else
+                            {
+                                noOfNonBillableTasksHours += parseFloat(records[i].Hour__c);;
+                            }
+                            
+                            var myDate =  records[i].Date__c;
+                            var monthPart = myDate.split('-')[1];
+                            if(monthPart == arrThisQuarterSplit[j].label)
+                            {
+                                arrThisQuarterSplit[j].value += parseFloat(records[i].Hour__c);
+                            }
+                        } 
+                    }
+                    if (result.getBoolean("done")) 
+                    {
+                        queryMore = false;
+                    } 
+                    else 
+                    {
+                        result = sforce.connection.queryMore(result.queryLocator);
+                    }
+                }
+                var labelString ='';
+                var valueString = '';
+                var markerString = '';
+                for(var j = 0; j < arrThisQuarterSplit.length; j++)
+                {
+                    //Changed
+                    var thisQuarterSplitJValue = Math.round(arrThisQuarterSplit[j].value*100)/100;
+                    thisQuarterSplitJValue = thisQuarterSplitJValue.toFixed(2);
+                    //Changed
+                    if(j != (arrThisQuarterSplit.length-1))
+                    {
+                        labelString += arrThisQuarterSplit[j].dayName+'|';
+                        valueString += thisQuarterSplitJValue+',';
+                        markerString += "t"+thisQuarterSplitJValue+",000000,0,"+j+",13,0|";
+                    }
+                    else
+                    {
+                        labelString += arrThisQuarterSplit[j].dayName;
+                        valueString += thisQuarterSplitJValue;
+                        markerString += "t"+thisQuarterSplitJValue+",000000,0,"+j+",13,0";
+                    } 
+                }
+                document.getElementById("imgHoursChart").src = "http://chart.apis.google.com/chart?cht=lc&chd=t:"+valueString+"&chs=500x130&chf=c,lg,45,ffffff,0,76A4FB,0.75%7Cbg,s,EFEFEF&chco=FF0000&chxt=x,y&chl="+labelString + "&chtt=Logged Hours&chm="+markerString; 
+            }
+            if(param == "this_year")
+            {
+                var qry = "SELECT Id, Date__c, Hour__c, TaskType__r.Billable__c FROM TimeSheetLine__c WHERE Date__c = this_year AND Timesheet__r.OwnerId='"+userId+"'";
+                var result = sforce.connection.query(qry);
+                var queryMore = true;
+                while(queryMore) 
+                {
+                    var records = result.getArray("records");
+                    for (var i = 0; i < records.length; i++) 
+                    {
+                        if(records[i].TaskType__r.Billable__c == "true")
+                        {
+                            noOfBillableTasksHours += parseFloat(records[i].Hour__c);
+                        }
+                        else
+                        {
+                            noOfNonBillableTasksHours += parseFloat(records[i].Hour__c);;
+                        }
+                        
+                        var myDate =  records[i].Date__c;
+                        var monthPart = myDate.split('-')[1];
+                        if(monthPart == "01" || monthPart == "02" || monthPart == "03" )
+                        {
+                            arrThisYearSplit[0].value +=  parseFloat(records[i].Hour__c);
+                        }
+                        if(monthPart == "04" || monthPart == "05" || monthPart == "06" )
+                        {
+                            arrThisYearSplit[1].value +=  parseFloat(records[i].Hour__c);
+                        }
+                        if(monthPart == "07" || monthPart == "08" || monthPart == "09" )
+                        {
+                            arrThisYearSplit[2].value +=  parseFloat(records[i].Hour__c);
+                        }
+                        if(monthPart == "10" || monthPart == "11" || monthPart == "12")
+                        {
+                            arrThisYearSplit[3].value +=  parseFloat(records[i].Hour__c);
+                        }
+                    }
+                    if (result.getBoolean("done")) 
+                    {
+                        queryMore = false;
+                    } 
+                    else 
+                    {
+                        result = sforce.connection.queryMore(result.queryLocator);
+                    }
+                }  
+                var labelString ='';
+                var valueString = '';
+                var markerString = '';
+                for(var j = 0; j < arrThisYearSplit.length; j++)
+                {
+                    //Changed
+                    var thisYearSplitJValue = Math.round(arrThisYearSplit[j].value*100)/100;
+                    thisYearSplitJValue= thisYearSplitJValue.toFixed(2);
+                    //Changed
+                    if(j != (arrThisYearSplit.length-1))
+                    {
+                        labelString += arrThisYearSplit[j].dayName+'|';
+                        valueString += thisYearSplitJValue+',';
+                        markerString += "t"+thisYearSplitJValue+",000000,0,"+j+",13,0|";
+                    }
+                    else
+                    {
+                        labelString += arrThisYearSplit[j].dayName;
+                        valueString += thisYearSplitJValue;
+                        markerString += "t"+thisYearSplitJValue+",000000,0,"+j+",13,0";
+                    } 
+                }
+                document.getElementById("imgHoursChart").src = "http://chart.apis.google.com/chart?cht=lc&chd=t:"+valueString+"&chs=500x130&chf=c,lg,45,ffffff,0,76A4FB,0.75%7Cbg,s,EFEFEF&chco=FF0000&chxt=x,y&chl="+labelString + "&chtt=Logged Hours&chm="+markerString;   
+                 
+            }
+            
+            var totalNoOfTasksHours = noOfBillableTasksHours + noOfNonBillableTasksHours + 0.0;
+            var billableTaskPercentage = 0;
+            var nonBillableTaskPercentage = 0;
+            if(totalNoOfTasksHours>0)
+            {
+                billableTaskPercentage = parseInt(((noOfBillableTasksHours+0.0)/totalNoOfTasksHours)*100); 
+                nonBillableTaskPercentage = 100 - billableTaskPercentage;
+            }
+            document.getElementById('imgBillabilityChart').src = "http://chart.apis.google.com/chart?chs=380x130&chd=t:"+noOfBillableTasksHours +","+noOfNonBillableTasksHours +"&cht=p3&chl=Billable ["+billableTaskPercentage +"%]|Non-Billable ["+nonBillableTaskPercentage +"%]&chf=bg,s,efefef20|c,s,EFEFEF&chtt=Task Billability";    
+        }
+        
+        function data()
+        {
+            var label;
+            var value;
+            var dayName; 
+        }
+        function refreshGlobalChartArrays()
+        {
+            for(var j = 0; j < arrThisWeekSplit.length; j++)
+            {
+                arrThisWeekSplit[j].value = 0;
+            }
+            for(var j = 0; j < arrThisMonthSplit.length; j++)
+            {
+                arrThisMonthSplit[j].value = 0;
+            }
+            for(var j = 0; j < arrThisQuarterSplit.length; j++)
+            {
+                arrThisQuarterSplit[j].value = 0;
+            }
+            for(var j = 0; j < arrThisYearSplit.length; j++)
+            {
+                arrThisYearSplit[j].value = 0;
+            }
+        }
+        function getDaysInMonth(iMonth, iYear)
+        {
+            return 32 - new Date(iYear, iMonth, 32).getDate();
+        }
+        function makeJsDate(str)
+        {
+            var arrDate = str.split('/');
+            var sDate = parseInt(arrDate[1]); 
+            var sMonth = parseInt(arrDate[0])-1;;
+            var sYear = parseInt(arrDate[2]);
+            return new Date(sYear, sMonth, sDate);
+        }
+        function makeSfJsDate(dt)
+        {
+            var dd = padZero(dt.getDate());
+            var mm = padZero(dt.getMonth()+1);
+            var yyyy = dt.getFullYear();
+            return  yyyy+"-"+mm+"-"+dd+""; 
+        }
+        function padZero(dtPart)
+        {
+            dtPart = dtPart+"";// Convert integer into string
+            if(dtPart.length == 1)
+            {
+                dtPart = '0'+ dtPart;
+            }
+            return dtPart;
+        }
+        function unPadZero(dtPart)
+        {
+            dtPart = dtPart+"";// Convert integer into string
+            if(dtPart.substring(0, 1) == "0")
+            {
+                dtPart = dtPart.substring(1);
+            }
+            return parseInt(dtPart);
+        }
+    </script>
+    <script>
+        function updateReminderSetting(val)
+        {
+            sforce.connection.sessionId = sId;
+            var objUser = new sforce.SObject("User");
+            objUser.id = userId; 
+            objUser.Receive_Timesheet_Reminders__c = val;
+            userResult = sforce.connection.update([objUser]);
+        }
+    </script>
+</head>
+    <apex:sectionHeader title="My Timesheets" subTitle="Timesheets for {!$User.FirstName} {!$User.LastName}"/>
+   
+        <apex:form id="form">
+             <apex:outputText style="font-weight: bold;" value="User: {!$User.FirstName} {!$User.LastName}"/>&nbsp;&nbsp;&nbsp;&nbsp;
+             <apex:outputText value="From: "/>&nbsp;&nbsp;
+              <apex:inputText id="txtFromDate" value="{!startDateString}" onclick="javascript: openDatePicker(this.id)" size="12"/>&nbsp;&nbsp;
+             <script>
+                 fromDateId = document.getElementById("{!$Component.txtFromDate}").id;
+             </script>
+             <span class="dateFormat">[&nbsp;<a id="dtLink1" href="javascript:DatePicker.insertDate(escape('{!startDateString}'), fromDateId , true);" >{!startDateString}</a>&nbsp;]</span>&nbsp;&nbsp;
+             <apex:outputText value="To: " />&nbsp;&nbsp;
+             <apex:inputText id="txtToDate" value="{!endDateString}" onclick="javascript: openDatePicker(this.id)" size="12"/>&nbsp;&nbsp;
+             <script>
+                 toDateId = document.getElementById("{!$Component.txtToDate}").id;
+             </script>
+             <span class="dateFormat" >[&nbsp;<a id="dtLink2" href="javascript:DatePicker.insertDate(escape('{!endDateString}'), toDateId , true);" >{!endDateString}</a>&nbsp;]</span>&nbsp;&nbsp;
+             <apex:CommandButton id="btnSerachTimeSheets" value="Search Timesheets" action="{!searchTimeSheets}" onComplete="javascript:highlightThisWeek()" reRender="detail"/>&nbsp;&nbsp;
+             <script>
+                 serachTimeSheetsId = document.getElementById("{!$Component.btnSerachTimeSheets}").id;;
+             </script>
+             <!--Receive Reminders<apex:inputCheckbox selected="{!remindersOn}" onChange="javascript: updateReminderSetting(this.checked)"/>-->
+             <br/>  
+             <br/> 
+             <apex:outputPanel id="detail">
+                 <apex:pageBlock title="Timesheets" mode="edit" >
+                     <span id="spTsTable">
+                         <apex:pageBlockTable id="tblTimeSheets" value="{!MyTimeSheets}" var="timesheet">
+                             <apex:column >
+                                 <input type='hidden' value="{!timesheet.Id}" />
+                             </apex:column>
+                             <apex:column headerValue="Week">{!timesheet.Name}</apex:column>
+                             <apex:column headerValue="Projects" >
+                                 <a href ="" onClick="javascript: return showProjects(this.parentNode.parentNode)">
+                                    <img src="/s.gif"  alt="View Projects (New Window)" class="lookupIcon" onblur="this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';" title="View Projects (New Window)" />
+                                 </a>               
+                             </apex:column>
+                             <apex:column headerValue="Status" >
+                                  <apex:outputText styleClass="{!IF(timesheet.Status__c='Work in progress','magentaText',IF(timesheet.Status__c='Submitted','orangeText',IF(timesheet.Status__c='Approved','greenText',IF(timesheet.Status__c='Rejected','redText','plainText'))))}" value="{!timesheet.Status__c}"/>
+                             </apex:column>
+                             <apex:column headerValue="Time (Hours)">
+                                  <apex:outputText value="{!IF (timesheet.Id = null, 0,timesheet.Total_Hours__c )}" />
+                             </apex:column>
+                             
+                             <apex:column headerValue="Action">
+                                  <apex:CommandButton onClick="javascript: return goToLineItems(escape('{!timesheet.Name}'), this)" style="width: 50px;" value="{!IF (timesheet.Id = null, 'Create', IF(timesheet.Status__c = 'Work in progress','Edit',IF(timesheet.Status__c = 'Rejected','Edit','View')))}" />
+                             </apex:column>
+                         </apex:pageBlockTable>
+                     </span>    
+                 </apex:pageBlock>
+            </apex:outputPanel> 
+            <apex:pageBlock title="Dashboard">
+                     <apex:pageBlockButtons location="Top">
+                         <table width="100%">
+                             <tr>
+                                 <td align="right">
+                                     <apex:selectList id="ddlDuration" multiselect="false" size="1" onChange="javascript: makeHoursChart()">
+                                         <apex:selectOption itemValue="this_week" itemLabel="This Week"/>
+                                         <apex:selectOption itemValue="this_month" itemLabel="This Month"/>
+                                         <apex:selectOption itemValue="this_quarter" itemLabel="This Quarter"/>
+                                         <apex:selectOption itemValue="this_year" itemLabel="This Year"/>
+                                     </apex:selectList>
+                                     <script>
+                                         durationId = document.getElementById("{!$Component.ddlDuration}").id;
+                                     </script>
+                                 </td>
+                             </tr>            
+                         </table>        
+                     </apex:pageBlockButtons>
+                     <table width="100%">
+                         <tr>
+                             <td align="left">
+                                 <img id="imgBillabilityChart" src="http://chart.apis.google.com/chart?chs=380x130&chd=t:&cht=p3&chl=&chf=bg,s,efefef20|c,s,EFEFEF&chtt=Task Billability" alt="Task Billability" />
+                             </td>
+                             <td align="right">
+                                 <img id="imgHoursChart" src="http://chart.apis.google.com/chart?cht=lc&chd=t:&chs=500x130&chf=c,lg,45,ffffff,0,76A4FB,0.75%7Cbg,s,EFEFEF&chco=FF0000&chxt=x,y&chl=&chtt=Logged Hours"/>
+                             </td>
+                         </tr>
+                     </table>         
+           </apex:pageBlock>    
+           
+       </apex:form>
+       <script>
+           highlightThisWeek();
+           makeHoursChart();
+       </script>
+        <div id="datePicker" class="datePicker" style="display: none; left: 397px; top: -30px;">
+                                <div class="dateBar">
+                                <img class="calLeft" title="Previous Month" onmouseover="this.className = 'calLeftOn';" onmouseout="this.className = 'calLeft';" onfocus="this.className = 'calLeftOn';" onclick="DatePicker.datePicker.prevMonth();" onblur="this.className = 'calLeft';" alt="Previous Month" src="/s.gif"/>
+                                <select id="calMonthPicker" title="Month" name="calMonthPicker">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                                </select>
+                                <img class="calRight" title="Next Month" onmouseover="this.className = 'calRightOn';" onmouseout="this.className = 'calRight';" onfocus="this.className = 'calRightOn';" onclick="DatePicker.datePicker.nextMonth();" onblur="this.className = 'calRight';" alt="Next Month" src="/s.gif"/>
+                                <select id="calYearPicker" title="Year" name="calYearPicker">
+                                <option value="2005">2005</option>
+                                <option value="2006">2006</option>
+                                <option value="2007">2007</option>
+                                <option value="2008">2008</option>
+                                <option value="2009">2009</option>
+                                <option value="2010">2010</option>
+                                <option value="2011">2011</option>
+                                <option value="2012">2012</option>
+                                <option value="2013">2013</option>
+                                <option value="2014">2014</option>
+                                <option value="2015">2015</option>
+                                <option value="2016">2016</option>
+                                <option value="2017">2017</option>
+                               
+                                </select>
+                                </div>
+                                <div class="calBody">
+                                <table id="datePickerCalendar" class="calDays" cellspacing="0" cellpadding="0" border="0">
+                                <tbody>
+                                <tr>
+                                <th class="dayOfWeek" scope="col">Sun</th>
+                                <th class="dayOfWeek" scope="col">Mon</th>
+                                <th class="dayOfWeek" scope="col">Tue</th>
+                                <th class="dayOfWeek" scope="col">Wed</th>
+                                <th class="dayOfWeek" scope="col">Thu</th>
+                                <th class="dayOfWeek" scope="col">Fri</th>
+                                <th class="dayOfWeek" scope="col">Sat</th>
+                                </tr>
+                                <tr id="calRow1">
+                                <td class="weekend prevMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">31</td>
+                                <td class="weekday selectedDate" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">1</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">2</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">3</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">4</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">5</td>
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">6</td>
+                                </tr>
+                                <tr id="calRow2">
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">7</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">8</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">9</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">10</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">11</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">12</td>
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">13</td>
+                                </tr>
+                                <tr id="calRow3">
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">14</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">15</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">16</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">17</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">18</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">19</td>
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">20</td>
+                                </tr>
+                                <tr id="calRow4">
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">21</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">22</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">23</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">24</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">25</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">26</td>
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">27</td>
+                                </tr>
+                                <tr id="calRow5">
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">28</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">29</td>
+                                <td class="weekday" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">30</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">1</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">2</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">3</td>
+                                <td class="weekend nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">4</td>
+                                </tr>
+                                <tr id="calRow6" style="display: none;">
+                                <td class="weekend" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">31</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">1</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">2</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">3</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">4</td>
+                                <td class="weekday nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">5</td>
+                                <td class="weekend nextMonth" onmouseover="hiOn(this);" onmouseout="hiOff(this);" onfocus="hiOn(this);" onclick="DatePicker.datePicker.selectDate(this);" onblur="hiOff(this);">6</td>
+                                </tr>
+                                </tbody>
+                                </table>
+                                <div class="buttonBar">
+                                <a class="calToday" href="javascript:DatePicker.datePicker.selectDate('today');">Today</a>
+                                </div>
+                                </div>
+                      </div>
+          
+</apex:page>

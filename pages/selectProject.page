@@ -1,0 +1,29 @@
+<apex:page controller="BES_clsSelectProjectController" tabStyle="Projects__c" sidebar="false" showHeader="false">
+  <script>
+      function populateParent(projId)
+      {
+          top.window.opener.setSelectedProjectDetailswithEscape(projId);
+          return false;
+      }
+  </script>
+    <apex:sectionHeader title="Select Project"/>
+    <apex:form >
+    <apex:pageBlock title="Choose Project" mode="edit">
+         Show me Projects: 
+         <apex:selectList size="1" value="{!queryModifier}" >
+            <apex:selectOptions value="{!items}"/>
+            <apex:actionSupport status="projectStatus" event="onchange" rerender="projectList" />
+        </apex:selectList><br />
+  
+        <apex:actionStatus id="projectStatus" startText="Fetching projects...">
+            <apex:facet name="stop"> 
+            <apex:pageBlockTable value="{!Projects}" id="projectList" var="project">
+                 <apex:column headerValue="Name">
+                        <span onClick="javascript: return populateParent(escape('{!project.ProjectId__c}'))"><a href='' style="cursor: pointer;">{!project.ProjectId__r.Name}</a></span>
+                 </apex:column>
+             </apex:pageBlockTable> 
+             </apex:facet>
+        </apex:actionStatus> 
+    </apex:pageBlock>
+    </apex:form>
+</apex:page>

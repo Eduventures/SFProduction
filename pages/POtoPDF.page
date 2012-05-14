@@ -1,0 +1,25 @@
+<apex:page standardController="Purchase_Order__c" showHeader="true" standardStylesheets="true" tabStyle="Purchase_Order__c" renderAs="pdf">
+<apex:image url="{!$Resource.evlogo}" />
+<table style="text-align:left;">
+    <tr><td><b>Purchase Order {!Purchase_Order__c.Name}</b> submitted by <apex:outputField value="{!Purchase_Order__c.Requesting_Staff_Member__c}" /></td></tr>
+    <tr><td><b>Est. Cost </b></td><td><apex:outputField value="{!Purchase_Order__c.Estimated_Total_Cost__c}" /></td></tr>
+    <tr><td><b>Description</b></td><td>{!Purchase_Order__c.Description__c}</td></tr>
+    <tr><td><b>Department</b></td><td><apex:outputField value="{!Purchase_Order__c.Class__c}" /></td></tr> 
+    <tr><td><b>Account</b></td><td><apex:outputField value="{!Purchase_Order__c.PO_Account__c}" /></td></tr>     
+    <tr><td><b>Vendor</b></td><td><apex:outputField value="{!Purchase_Order__c.Vendor__c}" /></td></tr> 
+    <tr><td><b>Vendor Contact</b></td><td><apex:outputField value="{!Purchase_Order__c.Vendor_Contact_Name__c}" />&nbsp;<apex:outputField value="{!Purchase_Order__c.Vendor_Contact_Phone__c}" />&nbsp;<apex:outputField value="{!Purchase_Order__c.Vendor_Contact_Email__c}" /></td></tr>              
+    <tr><td><b>Client to Bill</b></td><td><apex:outputField value="{!Purchase_Order__c.Client__c}" /></td></tr>
+    <tr><td><b>Client Contact</b></td><td><apex:outputField value="{!Purchase_Order__c.Client_Contact__c}" /></td></tr>
+</table>     
+
+<br />
+<br />
+<br />
+    <apex:dataTable style="width:100%;" value="{!Purchase_Order__c.ProcessSteps}" var="h">
+        <apex:column style="padding:10px;width:25%;" headerValue="Date" value="{!h.CreatedDate}"/>
+        <apex:column style="padding:10px;width:20%;" headerValue="Action" value="{!h.StepStatus}"/>
+        <apex:column style="padding:10px;width:25%;" headerValue="User Id"   value="{!h.ActorId}"/>
+        <apex:column style="padding:10px;width:30%;" headerValue="Comments"   value="{!h.Comments}"/>        
+    </apex:dataTable>
+
+</apex:page>

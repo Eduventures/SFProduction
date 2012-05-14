@@ -1,0 +1,60 @@
+<apex:page controller="LOAbrowserControler">
+    <apex:form id="browseForm">
+    <apex:pageBlock title="Hello {!$User.FirstName}!">
+        You are viewing LOAs created in the year &nbsp;<apex:outputPanel id="searchYear" ><apex:outputText value="{!yearToSearch}" /></apex:outputPanel>. By default, this page shows LOAs that are missing attachments.
+        If you wish to browse the attachments of LOAs that do have them, uncheck the box below.
+    </apex:pageBlock>
+    <apex:pageBlock title="Form Options">
+        <apex:outputLabel value="LOA Year:" for="years"/>
+        <apex:selectList size="1" value="{!yearToSearch}" id="years">
+            <apex:selectOptions value="{!Years}"/>
+            <apex:actionSupport event="onchange" status="loadStatus" reRender="LOAlist,searchYear,description" />
+        </apex:selectList>
+        <apex:outputLabel value="Show Only LOAs without Attachments?" for="toggleLoas"/>
+        <apex:inputCheckbox id="toggleLoas" value="{!showMissing}">
+            <apex:actionSupport event="onclick" status="loadStatus" reRender="LOAlist,searchYear,description" />
+        </apex:inputCheckbox>    
+         <apex:outputPanel style="text-align:center;" >
+            <apex:actionStatus id="loadStatus" >
+            <apex:facet name="start">
+             <h1>Refreshing....<img src="{!$Resource.spin}"/>  </h1>
+            </apex:facet>
+            </apex:actionStatus>
+          </apex:outputPanel> 
+    </apex:pageBlock>
+    <apex:pageBlock title="LOA List" >
+    <apex:outputPanel id="description">NOW VIEWING LOAs WITH<apex:outputText value="OUT" rendered="{!showMissing}" /> Attached Documents. Total count = <apex:outputText value="{!LOAcount}"  /> </apex:outputPanel>
+    <table>
+        <tr><td>
+            <apex:outputPanel id="LOAlist">
+            <apex:dataTable rendered="{!showMissing}" value="{!loasMissingFiles}" var="loa" cellPadding="4" 
+                               border="1">
+                  <apex:column >
+                      <apex:commandLink rerender="detail"> 
+                          {!loa.Name}
+                          <apex:param name="lid" value="{!loa.id}"/>
+                      </apex:commandLink>
+                  </apex:column>
+            </apex:dataTable>            
+            <apex:dataTable rendered="{! !showMissing}" value="{!loasWithFiles}" var="loa" cellPadding="4" 
+                               border="1">
+                  <apex:column >
+                      <apex:commandLink rerender="detail"> 
+                          {!loa.Name}
+                          <apex:param name="lid" value="{!loa.id}"/>
+                      </apex:commandLink>
+                  </apex:column>
+            </apex:dataTable>
+            </apex:outputPanel>  
+        </td>
+        <td>
+
+
+            <apex:outputPanel id="detail">
+                       <apex:detail subject="{!$CurrentPage.parameters.lid}" relatedList="true" />                
+            </apex:outputPanel>
+        </td></tr>
+        </table>
+    </apex:pageBlock>
+        </apex:form>
+</apex:page>

@@ -1,0 +1,67 @@
+<apex:page action="{!removeInline}" standardController="LOA__c" extensions="LOAaccountMgmtController">
+<style type="text/css">
+    .listcell { vertical-align:middle !important; white-space:nowrap;  font-weight: bold; text-align:center;}
+    .listrow { background-color: #FFFFCC; width:100%!important; vertical-align:middle !important; height:96px !important;}
+    .listHover:hover {background-color: #FFFFCC;padding:3px; }
+</style>
+<apex:form >  
+    <apex:pageBlock title="Tag an Existing Contact"> 
+        
+        <apex:inputHidden value="{!LOA__c.Account__c}"/>
+        <apex:inputHidden value="{!LOA__c.Program__c}"/>
+        <apex:pageBlockButtons >
+            <apex:commandButton action="{!goBack}" value="Return to Key Contacts List" />  
+            <span style="float:right;font-size:95%;padding-right:8px;" >          
+            <apex:outputText > Don&apos;t see your contact?&nbsp; </apex:outputText>
+            <apex:outputLink target="_parent" value="{!NewContactUrl}">Enter a new Contact for this account</apex:outputLink> 
+            </span> 
+        </apex:pageBlockButtons>  
+         
+    <apex:outputPanel id="contactList">
+
+    <table style="width:100%;vertical-align:middle;">
+        <tr>
+            <th > </th>
+            <th > </th>
+            <th >Name</th>
+            <th >Membership Role</th>
+        </tr>
+        <apex:variable value="{!0.0}" var="contactCount"/>
+        
+       <apex:repeat value="{!contactsWithoutRoles}" var="c">
+        <apex:outputPanel id="editRow" layout="none" rendered="{!c.Id == editContact.Id}" >
+            <tr class="listrow">           
+                <td class="listcell"><apex:commandLink action="{!saveEdit}" rerender="contactList" style="padding:4px;background-color:#33CC33;color:white;font-weight:bold;">Save</apex:commandLink></td>
+                <td class="listcell"><apex:commandLink action="{!cancelEdit}" rerender="contactList" style="padding:4px;background-color:#FF3300;color:white;font-weight:bold;">Cancel</apex:commandLink></td>
+                <td class="listcell"><apex:outputText rendered="{!c.Id == editContact.Id}">{!c.name}</apex:outputText></td>
+                <td class="listcell"><apex:inputField rendered="{!c.Id == editContact.Id}" value="{!editContact.Membership_Role__c}"/></td>
+            </tr>
+        </apex:outputPanel>
+        <apex:outputPanel id="StatusRow" layout="none" rendered="{!editedContactName != '' && editindex == contactCount}" >
+            <tr >           
+                <td class="listcell" colspan="4" style="font-style:italic;font-weight:bold;background-color:yellow;" > {!editedContactName} has been updated!</td>
+            </tr>
+        </apex:outputPanel>
+        <apex:outputPanel id="viewRow" layout="none" rendered="{!c.Id != editContact.Id}">
+            <tr class="listHover" >
+                <td class="listcell"> 
+                    <apex:commandButton value="Edit" disabled="{! !EditRights}"  rendered="{!c.Id != editContact.Id}" action="{!edit}" rerender="contactList"> 
+                        <apex:param name="editid" value="{!c.Id}"/>
+                        <apex:param name="editindex" value="{!contactCount}"/>
+                    </apex:commandButton>
+                </td>
+                <td>  </td>
+                <td style="white-space:nowrap;"><apex:outputLink target="_parent" value="{!URLFOR($Action.Contact.edit,
+                      c.id, [retURL='/'+LOA__c.Id])}">{!c.name}</apex:outputLink></td>
+                <td>{!c.Membership_Role__c}</td>
+            </tr>
+        </apex:outputPanel> 
+           <apex:variable var="contactCount" value="{!(contactCount)+1}"/>
+        </apex:repeat>
+    </table>
+
+    </apex:outputPanel> 
+    </apex:pageBlock>
+</apex:form>     
+      
+</apex:page>

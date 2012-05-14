@@ -1,0 +1,381 @@
+<apex:page standardController="Purchase_Order__c" action="{!initialize}" extensions="PurchaseOrderControllerExtension" >
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"> </meta>
+<apex:includeScript id="jqbase" value="{!URLFOR($Resource.jqueryui, '/js/jquery-1.4.2.min.js')}"/>
+<apex:includeScript id="jquijs" value="{!URLFOR($Resource.jqueryui, '/js/jquery-ui-1.8.2.custom.min.js')}"/>
+<apex:stylesheet id="jquicss" value="{!URLFOR($Resource.jqueryui, '/css/smoothness/jquery-ui-1.8.2.custom.css')}"/> 
+
+<script language="JavaScript">
+
+function disableEnterKey(e)
+{
+     var key;     
+     if(window.event)
+          key = window.event.keyCode; //IE
+     else
+          key = e.which; //firefox     
+
+     return (key != 13);
+}
+
+</script>
+
+<script type="text/javascript">
+
+    function showMe(divID) 
+    {
+            $("[id='"+divID+"']").dialog('open');    
+    }
+   
+    function hideMe(divID) 
+    {
+        $("[id='"+divID+"']").dialog('close');    
+    }
+    
+    function validateNotEmpty(elementId)
+    {
+        var data = $("input[id*='"+elementId+"']").val();
+        if(data  == null || data  == "" )
+        {
+            alert("Please enter part or all of a Vendor name to search!");
+            return false;
+        }else{
+            dosearch();
+        } 
+    }
+
+    
+    var submitted = 0;
+    function formvalidation() 
+    {
+        $("div[class*='errorMsg']").remove();
+        var hasError = false;
+        var $submitButton = $("input[type='submit']");
+        //$submitButton.attr("disabled", "true");
+        
+        if (submitted) {
+            alert("Form already submitted, please be patient");
+            return false;
+        }
+        
+        $(".isrequired").each(function (i) 
+        {
+            if (this.value == null || this.value.length == 0) 
+            {   
+               
+                //$(this).before('<div class="requiredInput"><div class="requiredBlock"></div>');
+                $(this).after('<div class="errorMsg"><strong>Error:</strong> You must enter a value</div>');
+                hasError = true;
+            }
+        });
+
+        $("[id*='billable2Client']").each(function (i) 
+        {
+            if(this.value == "Yes")
+            {
+                $("[id$='billingClient']").each(function (j)
+                {
+                    if (this.value == null || this.value.length == 0) 
+                    {
+                        //$(this).before('<div class="requiredInput"><div class="requiredBlock"></div>');
+                        $(this).after('<div class="errorMsg"><strong>Error:</strong> If "Billable to Client" is set to "Yes", then you must select a client.</div>');
+                        hasError = true;
+                    }
+                });
+            }
+        });
+
+                
+        if(hasError)
+        {
+            submitted = false;
+            $submitButton.removeAttr('disabled');
+            return false;
+        }
+        
+        if (!submitted) 
+        {
+            submitted = 1;
+            validatedsubmit();
+        }
+    } 
+ 
+    $(document).ready( function(){
+    
+        $(".popupWindow").dialog(
+        {
+            modal:true,
+            autoOpen: false,
+            closeable: true,
+            resizable: true,
+            width: 600,
+            height: 600,
+            overlay: {opacity: 0.5, background: "black" }
+        
+        });
+    });
+</script>
+<style>
+.requiredField {
+    background-color:#CC0000;
+    bottom:1px;
+    left:-4px;
+    top:1px;
+    width:3px;
+    position:absolute;
+}
+
+.requiredContainer {
+    height:100%;
+    position:relative;
+}
+
+</style>
+
+    <apex:sectionHeader title="New Purchase Order" />
+    
+    <apex:form id="poform" >
+        <apex:pageBlock id="purchaseOrderInputForm" mode="edit" >   
+        <apex:pageBlockButtons id="btns" location="bottom">
+                <input type="submit" id="poformsubmit" value="Submit this form" onclick="formvalidation();return false;" /> 
+                <apex:commandButton id="sv" value="Save"  style="display:none;"  action="{!save}" />
+                <apex:commandButton value="Cancel" action="{!cancel}"/>              
+        </apex:pageBlockButtons>  
+<apex:pageMessages />
+            <apex:pageBlockSection columns="1">
+                <apex:inputField value="{!Purchase_Order__c.Requesting_Staff_Member__c}" id="requestor" />                    
+            </apex:pageBlockSection>
+
+ <apex:actionRegion >
+            <apex:pageBlockSection id="accountInfo" columns="1" >
+                <apex:inputField value="{!Purchase_Order__c.Class__c}" styleClass="isrequired" />
+                <apex:inputField value="{!Purchase_Order__c.PO_Account__c}" styleClass="isrequired" />   
+            </apex:pageBlockSection> 
+ </apex:actionRegion>
+
+    <apex:actionRegion >  
+         <apex:pageBlockSection columns="1" id="vendorSearch"  >   
+           <apex:pageBlockSectionItem >
+               <apex:outputPanel rendered="{!showVendorSearch}"><apex:outputText >Vendor</apex:outputText> </apex:outputPanel>
+               <apex:outputPanel rendered="{!showVendorSearch}"><apex:inputText styleClass="isrequired" rendered="{!showVendorSearch}" id="sterm"  value="{!searchTerm}"  />
+               <a href="#" onclick="validateNotEmpty('sterm');return false">
+                   <img title="Vendor Lookup (New Window)" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onblur="this.className = 'lookupIcon';" class="lookupIcon" alt="Vendor Lookup (New Window)" src="/s.gif" />
+               </a></apex:outputPanel> 
+           </apex:pageBlockSectionItem>
+           <apex:pageBlockSectionItem >
+               <apex:outputPanel style="text-align:center;" >
+                    <apex:actionStatus id="loadStatus">
+                    <apex:facet name="start">
+                     <h1>Looking for possible matches....<img src="{!$Resource.spin}"/>  </h1>
+                    </apex:facet>
+                    </apex:actionStatus>
+                </apex:outputPanel>            
+           </apex:pageBlockSectionItem>
+        </apex:pageBlockSection>
+
+      <apex:actionFunction status="loadStatus" action="{!searchVendors}" name="dosearch" oncomplete="showMe('vendorSelectWindow');" reRender="vendorSearchResults,vendorSearchHeader,vendor,detailsView" />
+
+      </apex:actionRegion>
+           <apex:actionRegion >   <div id="vendorSelectWindow" class="popupWindow" style="display: none">
+                    <apex:outputPanel id="vendorSearchHeader">
+                        <apex:outputText value="Looking for account names containing: {!searchTerm}" /><br />
+                        <apex:outputText rendered="{!tooManyResults}"><p>Your search returned more than 1,000 results, please be more specific.</p></apex:outputText>    
+                        <apex:outputText style="float:right;">If your Vendor is not in the system, you can <apex:commandButton value="Create a new vendor" action="{!enterVendor}"  oncomplete="hideMe('vendorSelectWindow');" reRender="enterNewVendorForm,vendorSearch,vendor,detailsView,editView" /></apex:outputText>
+                    </apex:outputPanel>
+                    
+                    <apex:dataTable value="{!foundVendors}" var="v" id="vendorSearchResults" >
+                        <apex:column >
+                            <apex:facet name="header">Name</apex:facet>
+                            <apex:commandLink value="{!v.name}" action="{!selectV}" oncomplete="hideMe('vendorSelectWindow');" reRender="vendorSearch,vendor,detailsView,editView">
+                                <apex:param name="cvid" value="{!v.Id}"/>
+                            </apex:commandLink>
+                        </apex:column>
+                    </apex:dataTable> 
+           </div></apex:actionRegion>
+ <apex:actionRegion >                   
+            <apex:pageBlockSection id="enterNewVendorForm">
+                <apex:outputPanel rendered="{!shownewVendorForm}">  
+                        <table style="padding:5px;" align="center" >
+                        <th><b>Enter new Vendor Info</b></th>
+                        <tr><td><b>Name:  </b></td><td><apex:inputField required="true" value="{!newVendor.Name}" style="background-color:#CEEFFF;" /></td></tr>                                  
+                        <tr><td><b>Phone: </b></td><td><apex:inputField required="true" value="{!newVendor.Phone}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>Fax:   </b></td><td><apex:inputField value="{!newVendor.Fax}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>Street:</b></td><td><apex:inputField required="true" value="{!newVendor.BillingStreet}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>City:  </b></td><td><apex:inputField required="true" value="{!newVendor.BillingCity}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>State: </b></td><td><apex:inputField required="true" value="{!newVendor.BillingState}" style="background-color:#CEEFFF;"/></td></tr>
+                        <tr><td><b>ZIP:   </b></td><td><apex:inputField required="true" value="{!newVendor.BillingPostalCode}" style="background-color:#CEEFFF;"/></td></tr>
+                        <tr><td colspan="2"><apex:commandButton value="Create" action="{!createNewVendor}"  reRender="enterNewVendorForm,detailsView,vendor" style="background-color:#CEEFFF;" /> 
+                            <apex:commandButton value="Cancel" immediate="true" action="{!CancelVendorCreate}" reRender="enterNewVendorForm,detailsView,vendorSearch" /></td></tr>                           
+                        </table>
+                </apex:outputPanel>
+            </apex:pageBlockSection>
+  </apex:actionRegion>              
+            <apex:pageBlockSection columns="2" id="vendor"  >
+                <apex:pageBlockSectionItem rendered="{!Purchase_Order__c.Vendor__c != null}" >
+                	<apex:outputLabel for="vendorname" value="Selected Vendor:" ></apex:outputLabel>
+                	<apex:outputText id="vendorname" value="{!vendor.Name}" />
+                </apex:pageBlockSectionItem>
+                <apex:actionRegion > 
+                <apex:pageBlockSectionItem rendered="{!Purchase_Order__c.Vendor__c != null}">
+                	<apex:commandButton value="Choose a Different Vendor" immediate="true" action="{!ClearSelectedVendor}" reRender="detailsView,vendor,vendorSearch" />
+                </apex:pageBlockSectionItem>
+                </apex:actionRegion>  
+            </apex:pageBlockSection> 
+        
+   <apex:actionRegion >           
+       <apex:outputPanel id="detailsView">
+            <apex:pageBlockSection columns="1" rendered="{!editMode == false}" >
+               <table style="border:thin; border-color:#333333; border-style:dashed;width:80%;" >
+               <th>Vendor Info on File</th>
+               <tr><td>
+                <apex:outputPanel rendered="{!Purchase_Order__c.Vendor__c != null}" >
+                    <apex:outputLabel style="background-color::#CEEFFF;" value="To update any Vendor details below, click " for="editButton"> </apex:outputLabel>   
+                    <apex:commandButton style="padding-left:10px;" id="editButton"  value="Edit" action="{!vendorEdit}" reRender="detailsView,editView" /> 
+                </apex:outputPanel>                
+                <apex:outputField id="ph" value="{!vendor.Phone}" rendered="{!Purchase_Order__c.Vendor__c != null}" />
+                <apex:outputField id="fax" value="{!vendor.Fax}" rendered="{!Purchase_Order__c.Vendor__c != null}" />
+                <apex:outputField id="st" value="{!vendor.BillingStreet}" rendered="{!Purchase_Order__c.Vendor__c != null}"  />
+                <apex:outputField id="city" value="{!vendor.BillingCity}" rendered="{!Purchase_Order__c.Vendor__c != null}"  />
+                <apex:outputField id="state" value="{!vendor.BillingState}" rendered="{!Purchase_Order__c.Vendor__c != null}"  />
+                <apex:outputField id="zip"  value="{!vendor.BillingPostalCode}" rendered="{!Purchase_Order__c.Vendor__c != null}"  />
+                </td></tr></table >
+            </apex:pageBlockSection></apex:outputPanel>
+  </apex:actionRegion>               
+ <apex:actionRegion >  
+     <apex:outputPanel id="editView">             
+            <apex:pageBlockSection columns="1"  rendered="{!editMode == true}" >
+               <table style="border:thin; border-color:#333333; border-style:dashed;width:80%;" >
+               <th>Vendor Info</th>
+               <tr><td>
+                    <apex:inputField value="{!vendor.Phone}" />
+                    <apex:inputField value="{!vendor.Fax}" />
+                    <apex:inputField value="{!vendor.BillingStreet}" />
+                    <apex:inputField value="{!vendor.BillingCity}" />
+                    <apex:inputField value="{!vendor.BillingState}" />
+                    <apex:inputField value="{!vendor.BillingPostalCode}" />
+                    <apex:pageBlockSectionItem >
+                        <apex:outputPanel ></apex:outputPanel>
+                         <apex:outputPanel ><apex:commandButton value="Save" action="{!saveEdit}" reRender="detailsView,editView"/>
+                        <apex:commandButton value="Cancel" action="{!CancelEdit}" reRender="detailsView,editView" /></apex:outputPanel>
+                    </apex:pageBlockSectionItem>     
+               </td></tr></table >         
+            </apex:pageBlockSection></apex:outputPanel>            
+ </apex:actionRegion>
+
+            <apex:pageBlockSection columns="1" id="vendorContactForm" >
+                <apex:inputField value="{!Purchase_Order__c.Vendor_Contact_Name__c}" styleClass="isrequired" />                                
+                <apex:inputField value="{!Purchase_Order__c.Vendor_Contact_Phone__c}" styleClass="isrequired" />
+                <apex:inputField value="{!Purchase_Order__c.Vendor_Contact_Email__c}" styleClass="isrequired" />
+            </apex:pageBlockSection>
+
+ <apex:actionRegion >
+             <apex:pageBlockSection columns="1" id="billableCheck">
+                    <apex:inputField id="billable2Client" value="{!Purchase_Order__c.Billable_to_Client__c}" styleClass="isrequired" >
+                        <apex:actionSupport event="onchange" action="{!resetClient}" reRender="ClientInfo,clientContactDisplay" />
+                    </apex:inputField>
+            </apex:pageBlockSection> 
+            <apex:pageBlockSection id="ClientInfo" >
+               <apex:inputField id="billingClient" style="background-color:#CEEFFF;" value="{!Purchase_Order__c.Client__c}" rendered="{!Purchase_Order__c.Billable_to_Client__c == 'Yes'}">
+                    <apex:actionSupport event="onblur" reRender="clientContactsTable,clientContactDisplay"  />
+                    </apex:inputField>
+             </apex:pageBlockSection>
+
+             <apex:pageBlockSection columns="1" id="clientContactDisplay" >     
+                 <apex:outputPanel rendered="{!Purchase_Order__c.Client__c != null && !showNewClientContactForm}">
+                    <table>
+                    <tr><td width="18%"><input type="button" onclick="showMe('clientContactSelect');" value="Select Client Contact" /> </td>       
+                    <td><apex:outputText value="{!clientContact.Name}" id="clientContactDisplay" /></td></tr>
+                    </table>
+                 </apex:outputPanel> 
+             </apex:pageBlockSection>
+
+   <apex:actionRegion >           
+       <apex:outputPanel id="ccdetailsView">
+            <apex:pageBlockSection columns="1" rendered="{!ccEditMode == false}" >
+                <apex:outputPanel rendered="{!Purchase_Order__c.Vendor__c != null}" >
+                    <apex:outputLabel style="background-color::#CEEFFF;" value="To update contact info on file for this person, click " for="cceditButton"> </apex:outputLabel>   
+                    <apex:commandButton style="padding-left:10px;" id="cceditButton"  value="Update" action="{!ccEdit}" reRender="ccdetailsView,cceditView" /> 
+                </apex:outputPanel>  
+                <apex:outputField id="ccname" value="{!clientContact.Name}" rendered="{!Purchase_Order__c.Client_Contact__c != null}" />
+                <apex:outputField id="ccph" value="{!clientContact.Phone}" rendered="{!Purchase_Order__c.Client_Contact__c != null}" />
+                <apex:outputField id="ccemail" value="{!clientContact.Email}" rendered="{!Purchase_Order__c.Client_Contact__c != null}"  />
+            </apex:pageBlockSection></apex:outputPanel>
+  </apex:actionRegion>               
+    <apex:actionRegion >  
+     <apex:outputPanel id="cceditView">             
+            <apex:pageBlockSection columns="1"  rendered="{!ccEditMode == true}" >
+                    <apex:inputField value="{!clientContact.Name}" />
+                    <apex:inputField value="{!clientContact.Phone}" />
+                    <apex:inputField value="{!clientContact.Email}" />
+                    <apex:pageBlockSectionItem >
+                        <apex:outputPanel ></apex:outputPanel>
+                        <apex:outputPanel rendered="{!ccEditMode == true}">
+                            <apex:commandButton value="Save" action="{!saveContactEdit}" reRender="ccdetailsView,cceditView"/>
+                            <apex:commandButton value="Cancel" action="{!cancelContactEdit}" reRender="ccdetailsView,cceditView" />                        
+                        </apex:outputPanel>
+                    </apex:pageBlockSectionItem>           
+            </apex:pageBlockSection></apex:outputPanel>            
+     </apex:actionRegion>
+
+
+             <apex:pageBlockSection id="enterClientContact"  >  
+              <apex:outputPanel rendered="{!Purchase_Order__c.Client__c != null && showNewClientContactForm}">   
+                        <table style="padding:5px;" align="center" >
+                        <th><b>Enter New Client Contact</b></th>
+                        <tr><td><b>First Name:  </b></td><td><apex:inputField value="{!newClientContact.FirstName}" style="background-color:#CEEFFF;" /></td></tr>                                  
+                        <tr><td><b>Last Name:  </b></td><td><apex:inputField value="{!newClientContact.LastName}" style="background-color:#CEEFFF;"  /></td></tr>
+                        <tr><td><b>Phone: </b></td><td><apex:inputField value="{!newClientContact.Phone}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>Email: </b></td><td><apex:inputField value="{!newClientContact.Email}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>Fax:   </b></td><td><apex:inputField value="{!newClientContact.Fax}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>Street:</b></td><td><apex:inputField value="{!newClientContact.MailingStreet}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>City:  </b></td><td><apex:inputField value="{!newClientContact.MailingCity}" style="background-color:#CEEFFF;" /></td></tr>
+                        <tr><td><b>State: </b></td><td><apex:inputField value="{!newClientContact.MailingState}" style="background-color:#CEEFFF;"/></td></tr>
+                        <tr><td><b>ZIP:   </b></td><td><apex:inputField value="{!newClientContact.MailingPostalCode}" style="background-color:#CEEFFF;"/></td></tr>
+                        <tr><td> </td><td><apex:commandButton value="Create" action="{!createClientContactAcct}"  reRender="enterClientContact,clientContactDisplay" style="background-color:#CEEFFF;" /> <apex:commandButton value="Cancel" immediate="true" action="{!CancelClientCreate}" reRender="enterClientContact,clientContactDisplay" /></td></tr>                           
+                        </table>
+                      </apex:outputPanel>
+             </apex:pageBlockSection>             
+ </apex:actionRegion>
+ 
+ <apex:actionRegion >
+               
+            <apex:pageBlockSection columns="1" id="termsDetails"  >  
+                <apex:inputField value="{!Purchase_Order__c.Estimated_Total_Cost__c}" id="cost" styleClass="isrequired" />  
+                 <apex:inputField value="{!Purchase_Order__c.Number_of_Invoices__c}" id="invoices" styleClass="isrequired" >
+                    <apex:actionSupport event="onblur" reRender="timing" />
+                 </apex:inputfield>  
+                 
+                 <apex:inputField value="{!Purchase_Order__c.Payment_Terms__c}" style="width:350px;" styleClass="isrequired"></apex:inputField>                
+                 <apex:inputField style="width:350px;"  id="description" value="{!Purchase_Order__c.Description__c}" styleClass="isrequired" />              
+             </apex:pageBlockSection>
+ </apex:actionRegion>   
+<apex:actionRegion >   
+           <apex:pageBlockSection > 
+               <apex:pageBlockSectionItem >
+                   <apex:outputText >Attach a File (e.g., quote, etc.)</apex:outputText>
+                   <apex:inputFile value="{!attachment.body}" filename="{!attachment.name}"/>           
+               </apex:pageBlockSectionItem>
+             </apex:pageBlockSection>
+ </apex:actionRegion>
+
+           <apex:actionRegion >  <div id="clientContactSelect" class="popupWindow" style="display: none">
+            Choose a Contact for Vendor outreach
+                <apex:outputPanel rendered="{! !showNewClientContactForm}">
+                    If your contact is not in the system, you can <apex:commandButton value="create their contact record" action="{!enterNewClientContact}" oncomplete="hideMe('clientContactSelect');" reRender="enterClientContact,clientContactDisplay" /><br />
+                </apex:outputPanel>
+               
+                    <apex:dataTable value="{!client.Contacts}" var="cc" id="clientContactsTable" >
+                        <apex:column >
+                            <apex:facet name="header">Name</apex:facet>
+                            <apex:commandLink value="{!cc.name}" action="{!selectCC}" oncomplete="hideMe('clientContactSelect');" reRender="clientContactDisplay,ccdetailsView">
+                                <apex:param name="ccid" value="{!cc.Id}"/>
+                            </apex:commandLink>
+                        </apex:column>
+                    </apex:dataTable>
+                
+           </div>  </apex:actionRegion>
+             
+          </apex:pageBlock> 
+    <apex:actionFunction action="{!save}" name="validatedsubmit"  />
+      
+    </apex:form>
+</apex:page>

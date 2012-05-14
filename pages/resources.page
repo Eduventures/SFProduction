@@ -1,0 +1,104 @@
+<apex:page controller="resourceController">
+<apex:includeScript id="jqbase" value="{!URLFOR($Resource.jqueryui, '/js/jquery-1.4.2.min.js')}"/>
+<apex:includeScript id="jquijs" value="{!URLFOR($Resource.jqueryui, '/js/jquery-ui-1.8.2.custom.min.js')}"/>
+<apex:stylesheet id="jquicss" value="{!URLFOR($Resource.jqueryui, '/css/smoothness/jquery-ui-1.8.2.custom.css')}"/> 
+<style type="text/css">
+  .equip {font-weight:bold;background-color:#999999;}
+  .equipAssigned {font-weight:bold;background-color:LightBlue;}
+  .req {font-weight:bold;background-color: #7CCD7C;}
+</style>
+<script>
+// HOTFIX: We cant upgrade to jQuery UI 1.8.6 (yet)
+// This hotfix makes older versions of jQuery UI drag-and-drop work in IE9
+(function($){var a=$.ui.mouse.prototype._mouseMove;$.ui.mouse.prototype._mouseMove=function(b){if($.browser.msie&&document.documentMode>=9){b.button=1};a.apply(this,[b]);}}(jQuery));
+</script>
+<script type="text/javascript">
+         var j$ = jQuery.noConflict();
+ 
+        
+        j$(document).ready(function(){
+        makedrag();
+        });
+        
+        function makedrag(){
+          j$( ".equip" ).draggable({revert:"invalid"});
+          j$( ".equipAssigned" ).draggable({revert:"invalid"});
+          j$( ".return").droppable({
+            accept: '.equipAssigned',
+            drop: function( event, ui ) {
+                assignEquip(j$(ui.draggable).attr("id"),j$(this).attr("id"))
+                
+            }  
+          });      
+          j$( ".req" ).droppable({
+            accept: '.equip',
+            drop: function( event, ui ) {
+                j$( this )
+                    .addClass( "ui-state-highlight" )
+                assignEquip(j$(ui.draggable).attr("id"),j$(this).attr("id"))
+            }
+        });
+    };        
+</script>
+<apex:form >
+ <apex:actionFunction name="assignEquip" action="{!assignEquipment}" rerender="resourceBlock" oncomplete="makedrag()">
+     <apex:param name="equipId" value="" />
+     <apex:param name="destinationId" value="" />
+ </apex:actionFunction>
+</apex:form>
+    <apex:outputPanel id="msgPanel">
+        <apex:pageMessages escape="false" />
+        <apex:pageMessage id="msg" escape="false" detail="{!message}" severity="info" rendered="{!message != ''}"></apex:pageMessage>
+    </apex:outputPanel>
+<apex:pageBlock title="Resource Assignment" id="resourceBlock"  onmouseover="">
+<table width="100%">
+<tr>
+<td with="75%"></td><td></td>
+</tr>
+<tr>
+<td width="75%"><h1>Reservation Cases</h1>
+<apex:outputPanel >
+<table width="100%" style="border-collapse:collapse;" border="1" cellpadding="3">
+<tr><td>Case Number</td><td>Contact</td><td>Detail</td><td>Status</td><td>Equipment</td></tr>
+<apex:repeat value="{!reservationCases}" var="res">
+<tr>
+<td><apex:outputLink value="/{!res.Id}" target="_blank">{!res.CaseNumber}</apex:outputLink></td> 
+<td>{!res.Contact.Name}</td>
+<td>{!res.Problem_Detail__c}</td>
+<td>{!res.Status}</td>
+<td><div id="{!res.Id}" class="req">
+<apex:repeat value="{!res.Assigned_Equipment__r}" var="item">
+	<div id="{!item.Name}" class="equipAssigned">{!item.Name}</div>
+</apex:repeat>
+&nbsp;</div>
+</td>
+</tr>
+</apex:repeat>
+</table>
+</apex:outputPanel>
+</td>
+<td>
+<h1>Mark Equipment Returned</h1><img class="return" id="returnMe" src="{!URLFOR($Resource.return_icon)}" /><br /><br />
+<h1>Available Equipment</h1>
+<apex:outputPanel >
+
+<table style="width:100%;border-collapse:collapse;" cellpadding="3" border="1">
+<tr><td>Equipment Id</td><td>Type</td><td>Status</td></tr>
+<apex:repeat value="{!equipment}" var="equip">
+<tr>
+<td><div class="return"><div id="{!equip.Name}" class="equip">{!equip.Name}</div></div></td>
+<td>{!equip.Type__c}</td>
+<td>{!equip.Status__c}</td>
+</tr>
+</apex:repeat>
+</table>
+
+</apex:outputPanel>{!resultString}</td>
+</tr>
+
+</table>
+
+</apex:pageBlock>
+
+
+</apex:page>

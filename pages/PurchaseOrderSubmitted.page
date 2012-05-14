@@ -1,0 +1,9 @@
+<apex:page controller="PurchaseOrderSubmittedController" tabStyle="Purchase_Order__c" action="{!displayMessages}" tabStyle="Purchase_Order__c"  >
+<apex:pageMessages escape="false" />
+<script type="text/JavaScript">
+
+setTimeout("location.href = '{!redirectUrl}';",5000);
+
+</script>
+<p><apex:outputLink value="{!redirectUrl}">Take me there now!</apex:outputLink></p>
+</apex:page>

@@ -1,0 +1,24 @@
+<apex:page tabStyle="Timesheet__c" controller="BES_clsTimeSheetLinesController" sidebar="false" showHeader="false" >
+    <apex:form >
+         
+         <apex:pageBlock title="Projects" mode="edit">
+             <apex:pageBlockTable value="{!Projects}" var="project">
+                 
+                 <apex:column headerValue="Account">
+                        {!project.Description__c}
+                 </apex:column>
+                 
+                 <apex:column headerValue="Name">
+                        {!project.Name}
+                 </apex:column>
+                 
+                 <apex:column headerValue="Hours">
+                        {!project.Hour__c}
+                 </apex:column>
+                 
+             </apex:pageBlockTable>        
+         </apex:pageBlock>
+         
+  </apex:form>
+  
+</apex:page>

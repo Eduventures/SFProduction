@@ -1,0 +1,195 @@
+<apex:page controller="MemberActivityController">
+
+<script type="text/javascript">
+    var popupHandle; // handle to the popup window
+    
+    function showPopup(acctID,groupToShow,program,days) { 
+        popupHandle = window.open('{!$Page.MemberActivityProjectsView}?selectedacctid=' + acctID + '&projecttype=' + groupToShow + '&program=' + program + '&days=' + days , "_blank","width=800, height=800,dependent=no,resizable=yes,toolbar=no,status=no,directories=no,menubar=no,scrollbars=1", true);
+    } 
+   
+</script>
+
+<style>
+.sortDesc {
+    background-image:url("/img/sort_desc_arrow.gif");
+    background-position:0 0;
+    height:14px;
+    vertical-align:text-top;
+    width:21px;
+}
+
+.sortAsc {
+    background-image:url("/img/sort_asc_arrow.gif");
+    background-position:0 0;
+    height:14px;
+    vertical-align:text-top;
+    width:21px;
+}
+
+</style>
+<apex:form >
+<apex:pageBlock title="Member Activity Report" >
+<apex:pageBlockSection id="reportControls" columns="1" >
+    <apex:outputPanel >
+    Choose a Program:  <apex:selectList id="prgSelect" value="{!selectedProgram}" size="1" >
+        <apex:selectOptions value="{!currentPrograms}" />
+    </apex:selectList> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    Show me activity since <apex:inputField value="{!prototype.Approval_Date__c}"/><br />
+    <br />    
+    Filter By Renewal Date:  <apex:selectList value="{!renewalDateSelected}" size="1">
+        <apex:selectOptions value="{!renewalDateFilterOptions}" />
+    </apex:selectList>  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;        
+    <apex:commandButton action="{!populateDataPointslist}" value="Run Report" reRender="MemberDataTable,summaryInfo" status="loadStatus" />
+    </apex:outputPanel>
+</apex:pageBlockSection>
+           
+<apex:pageBlockSection id="filterInfo" columns="1" >
+    <apex:outputPanel rendered="{! filterfield != ''}" >
+    <br />
+    Filtering on:&nbsp;<apex:outputText >{!filterfield} <b>{!filtervalue}</b></apex:outputText> <br />
+    <apex:commandButton action="{!clearFilter}" value="Clear Filter" reRender="MemberDataTable,filterInfo" status="loadStatus">  </apex:commandButton>
+    <br />
+    </apex:outputPanel>
+</apex:pageBlockSection>
+
+<apex:pageBlockSection id="loading" columns="1" >
+     <apex:outputPanel style="text-align:center;" >
+        <apex:actionStatus id="loadStatus" >
+        <apex:facet name="start">
+         <h1>Refreshing....<img src="{!$Resource.spin}"/>  </h1>
+        </apex:facet>
+        </apex:actionStatus>
+    </apex:outputPanel> 
+</apex:pageBlockSection> 
+
+
+<apex:pageBlockSection columns="1" >
+<apex:outputPanel id="summaryInfo"  >Summary Data: percentage of members with a substantial interaction for this period = {!percentWithInteraction}% [count {!membersWithInteraction} out of {!dataPoints.size}]</apex:outputPanel>
+</apex:pageBlockSection> 
+
+<apex:actionRegion >
+<apex:pageBlockTable id="MemberDataTable"  value="{!dataPoints}" var="sd">
+    <apex:column rendered="{! !sd.filtered}">
+        <apex:facet name="header">
+            <apex:commandLink action="{!sortTable}" status="loadStatus"  reRender="MemberDataTable" value="Account Name">
+                <apex:param name="sortfunction" value="string"/>
+                <apex:param name="sortfieldname" value="AcctName"/>
+                <apex:image rendered="{!sortfieldname  == 'AcctName'}" title="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" styleClass="{!if(reverseSort,'sortDesc','sortAsc')}" alt="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" url="/s.gif" />
+            </apex:commandLink>
+        </apex:facet> 
+        <apex:outputLink value="/{!sd.contract.Id}" title="opens LOA view in a new window" target="_blank">{!sd.contract.Account__r.Name}</apex:outputLink> 
+        <apex:outputText rendered="{!if(sd.contract.First_Year_Member__c == 'yes',true,false)}"><br /><font color="red"> *first year member</font></apex:outputText>
+    </apex:column>
+    <apex:column rendered="{! !sd.filtered}">
+        <apex:facet name="header">
+            <apex:commandLink action="{!sortTable}" status="loadStatus"  reRender="MemberDataTable" value="Program">
+                <apex:param name="sortfunction" value="string"/>
+                <apex:param name="sortfieldname" value="Program"/>
+                <apex:image rendered="{!sortfieldname  == 'Program'}" title="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" styleClass="{!if(reverseSort,'sortDesc','sortAsc')}" alt="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" url="/s.gif" />
+            </apex:commandLink>
+        </apex:facet>
+        <apex:commandLink action="{!filterTable}" status="loadStatus" title="Click to filter by this field" reRender="MemberDataTable,filterInfo" value="{!sd.Program}">
+            <apex:param name="filterfield" value="Program"/>
+            <apex:param name="filtervalue" value="{!sd.Program}"/>
+        </apex:commandLink>
+    </apex:column>
+    <apex:column rendered="{! !sd.filtered}">
+        <apex:facet name="header">
+            <apex:commandLink action="{!sortTable}" status="loadStatus"  reRender="MemberDataTable" value="Research Account Manager">
+                <apex:param name="sortfunction" value="string"/>
+                <apex:param name="sortfieldname" value="ResearchManager"/>
+                <apex:image rendered="{!sortfieldname  == 'ResearchManager'}" title="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" styleClass="{!if(reverseSort,'sortDesc','sortAsc')}" alt="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" url="/s.gif" />
+            </apex:commandLink>
+        </apex:facet>
+        <apex:outputPanel style="white-space:nowrap;" rendered="{! !sd.editingRM}" >
+            <apex:outputField value="{!sd.contract.Research_Account_Manager__c}" rendered="{!sd.contract.Research_Account_Manager__c != null}" />
+            <apex:outputText value="(missing)" rendered="{!sd.contract.Research_Account_Manager__c == null}" />        
+            <apex:commandLink action="{!filterTable}" status="loadStatus" title="Click to filter by this field" reRender="MemberDataTable,filterInfo">
+                <img height="16" width="16" title="Click to Filter the report by this user" alt="Click to Filter the report by this user" src="/img/filter16.gif" />
+                <apex:param name="filterfield" value="Research Account Manager"/>
+                <apex:param name="filtervalue" value="{!if(sd.contract.Research_Account_Manager__c != null, sd.contract.Research_Account_Manager__r.Name,'(missing)')}"/>
+            </apex:commandLink>
+            <apex:commandLink rendered="{! !sd.editingRM}" action="{!editRM}" reRender="MemberDataTable,debug,controls" style=""><apex:image alt="Edit" url="/img/func_icons/util/pencil12.gif" />
+                <apex:param name="editrow" value="{!sd.contract.id}"/>
+            </apex:commandLink>
+        </apex:outputPanel>
+        <apex:outputPanel style="white-space:nowrap;" rendered="{!sd.editingRM}" >
+            <apex:inputField value="{!sd.contract.Research_Account_Manager__c}"/>
+            <apex:commandLink action="{!saveRM}" reRender="MemberDataTable,reportControls" style="">Save
+                <apex:param name="saverow" value="{!sd.contract.id}"/>
+            </apex:commandLink> &nbsp;
+            <apex:commandLink action="{!cancelRM}" reRender="MemberDataTable,reportControls" style="color:red;" value="Cancel" />
+        </apex:outputPanel>    
+    </apex:column>
+    <apex:column rendered="{! !sd.filtered}">
+        <apex:facet name="header">
+            <apex:commandLink action="{!sortTable}" status="loadStatus"  reRender="MemberDataTable" value="Renewal Date">
+                <apex:param name="sortfunction" value="date"/>
+                <apex:param name="sortfieldname" value="renewalDate"/>
+                <apex:image rendered="{!sortfieldname  == 'renewalDate'}" title="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" styleClass="{!if(reverseSort,'sortDesc','sortAsc')}" alt="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" url="/s.gif" />
+            </apex:commandLink>
+        </apex:facet>
+        <apex:outputField value="{!sd.contract.End_Date__c}" />
+    </apex:column>  
+    <apex:column rendered="{! !sd.filtered}">
+        <apex:facet name="header">
+            <apex:commandLink action="{!sortTable}" status="loadStatus"  reRender="MemberDataTable" value="Renewal Risk">
+                <apex:param name="sortfunction" value="string"/>
+                <apex:param name="sortfieldname" value="RenewalRisk"/>
+                <apex:image rendered="{!sortfieldname  == 'RenewalRisk'}" title="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" styleClass="{!if(reverseSort,'sortDesc','sortAsc')}" alt="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" url="/s.gif" />
+            </apex:commandLink>
+        </apex:facet>
+        <apex:outputPanel style="white-space:nowrap;{!if(sd.contract.Renewal_Risk__c='At Risk','background:#F2C2C4;font-weight: bold','')}" rendered="{! !sd.editingRR}" >
+            <apex:outputField value="{!sd.contract.Renewal_Risk__c}" rendered="{!sd.contract.Renewal_Risk__c != null}" />  
+            <apex:outputText value="(missing)" rendered="{!sd.contract.Renewal_Risk__c == null}" /> &nbsp;        
+            <apex:commandLink action="{!filterTable}"  title="Click to filter by this field" status="loadStatus"  reRender="MemberDataTable,filterInfo">
+                <img height="16" width="16" title="Click to Filter the report by this Risk value" alt="Click to Filter the report by this Risk value" src="/img/filter16.gif" />
+                <apex:param name="filterfield" value="Renewal Risk"/>
+                <apex:param name="filtervalue" value="{!if(sd.contract.Renewal_Risk__c != null, sd.contract.Renewal_Risk__c,'(missing)')}"/>
+            </apex:commandLink>&nbsp; 
+            <apex:commandLink action="{!editRR}" reRender="MemberDataTable,reportControls" style=""><apex:image alt="Edit" url="/img/func_icons/util/pencil12.gif" />
+                <apex:param name="editrow" value="{!sd.contract.id}"/>
+            </apex:commandLink>
+        </apex:outputPanel>
+        <apex:outputPanel style="white-space:nowrap;" rendered="{!sd.editingRR}" >
+            <apex:inputField value="{!sd.contract.Renewal_Risk__c}" />
+            <apex:commandLink action="{!saveRR}" reRender="MemberDataTable,reportControls" style="">Save
+                <apex:param name="saverow" value="{!sd.contract.id}"/>
+            </apex:commandLink> &nbsp;
+            <apex:commandLink action="{!cancelRR}" reRender="MemberDataTable,reportControls" style="color:red;" value="Cancel" />
+        </apex:outputPanel>
+    </apex:column>
+    <apex:column rendered="{! !sd.filtered}" style="text-align:center">
+        <apex:facet name="header">
+            Service/Research<br /> Count <img title="Help" class="helpIcon" title="A count of the 'research' types of projects (CHK-IN CALL,CA,CI,Q&A,SS) that were active during the timeframe you selected" src="/s.gif" />
+        </apex:facet>
+        <input type="button" onclick="showPopup('{!sd.contract.Account__c}','research','{!sd.contract.Program__c}',{!daysBackToSearch});" value="{!sd.researchCount}"/>
+    </apex:column>
+ 
+    <apex:column rendered="{! !sd.filtered}" style="text-align:center">
+        <apex:facet name="header">
+            Event/Participation<br /> Count <img title="Help" class="helpIcon" title="A count of the 'participation' types of projects (AMM,CRT,MR,MYC,OBC) that were active during the timeframe you selected" src="/s.gif" />
+        </apex:facet>    
+        <input type="button" onclick="showPopup('{!sd.contract.Account__c}','participation','{!sd.contract.Program__c}',{!daysBackToSearch});" value="{!sd.participation.size}"/>
+    </apex:column>    
+    <apex:column value="{!sd.total_new_hours}" rendered="{! !sd.filtered}">
+        <apex:facet name="header">
+            <apex:commandLink action="{!sortTable}" status="loadStatus"  reRender="MemberDataTable" value="Total New Hours">
+                <apex:param name="sortfunction" value="decimal" />
+                <apex:param name="sortfieldname" value="Total New Hours" />
+                <apex:image rendered="{!sortfieldname  == 'Total New Hours'}" title="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" styleClass="{!if(reverseSort,'sortDesc','sortAsc')}" alt="{!if(reverseSort,'Sorted Descending','Sorted Ascending')}" url="/s.gif" />
+            </apex:commandLink>
+        </apex:facet>
+    </apex:column>
+    
+    <apex:column style="{!if(sd.total_interaction_count = 0,'background:#F2C2C4;font-weight: bold', 'color:black')}" headerValue="Interaction Total" rendered="{! !sd.filtered}">
+        {!sd.total_interaction_count}
+    </apex:column>
+    
+    
+       </apex:pageBlockTable>
+</apex:actionRegion>
+
+</apex:pageBlock>
+</apex:form>
+</apex:page>

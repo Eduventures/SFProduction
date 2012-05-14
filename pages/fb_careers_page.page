@@ -1,0 +1,85 @@
+<apex:page showHeader="false" >
+ <style type="text/css">
+body {
+    color: #333333;
+    font-family: "lucida grande",tahoma,verdana,arial,sans-serif;
+    font-size: 11px;
+    margin: 0;
+    overflow-y: scroll;
+    padding: 0;
+}
+
+th {
+    color: #333333;
+    font-family: "lucida grande",tahoma,verdana,arial,sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+}
+
+li {
+    color: #333333;
+    font-family: "lucida grande",tahoma,verdana,arial,sans-serif;
+    font-size: 11px;
+    margin-left: -20px;
+    padding: 0;
+}
+</style>
+
+<div id="fb-root"></div>
+<!--<script>
+  window.fbAsyncInit = function() {
+    FB.init({appId: '185150264828689', status: true, cookie: true,
+             xfbml: true});
+    
+
+  };
+  (function() {
+    var e = document.createElement('script'); e.async = true;
+    e.src = document.location.protocol +
+      '//connect.facebook.net/en_US/all.js';
+    document.getElementById('fb-root').appendChild(e);
+  }());
+</script>-->
+
+
+ <img src="http://www.eduventures.com/about/careers/job-opportunities/careers_banner.jpg" align="center" />
+<p><b>Careers at Eduventures</b></p>
+<p>Welcome! If you''re smart, have a passion for higher education, work hard, and like to relax with your co-workers, then Eduventures is the place for you. We've designed this page to help you learn more about what it's like to work at Eduventures and to list our current job opportunities.</p>
+<table width="90%" border="0" align="left" class="body">
+<tbody>
+<tr>
+<th>Current Openings</th>
+<th>Working at Eduventures</th>
+
+</tr>
+<tr>
+<td width="60%">
+<ul>
+<li><a target="_blank" title="Marketing Programs Manager" href="http://www.eduventures.com/about/careers/job-opportunities/strategy-and-marketing/marketing_programs_manager">Marketing Programs Manager</a></li>
+<li><a target="_blank" title="Managing Vice President, Sales + Marketing" href="http://www.eduventures.com/about/careers/job-opportunities/sales/mvp-sales-marketing">Managing Vice President, Sales + Marketing</a></li>
+<li><a target="_blank" title="Higher Education Inside Sales Representative" href="http://www.eduventures.com/about/careers/job-opportunities/sales/inside_sales_rep/">Inside Sales Representative</a></li>                                                              
+<!--<li><a target="_blank" title="Business Development Associate/Manager" href="http://www.eduventures.com/about/careers/job-opportunities/consulting/bdm_ecs/">Business Development Associate/Manager</a></li>-->
+<!--<li><a target="_blank" title="Inside Sales Representative" href="http://www.eduventures.com/about/careers/job-opportunities/sales/inside_sales_rep">Inside Sales Representative</a></li>-->
+<li><a target="_blank" title="Research Associates" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/research-associates2/">Research Associates</a></li>
+<!--<li><a target="_blank" title="Senior Analyst/Consultant for Enrollment Management" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/sr-analyst-consultant-em">Senior Analyst/Consultant for Enrollment Management</a></li>-->
+<!--<li><a target="_blank" title="Consultant" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/consultant-ecs/">Consultant</a></li>
+<li><a target="_blank" title="Research Analysts/Associates - Higher Education" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/research-analysts-associates-he/">Research Analysts/Associates - Higher Education</a></li>-->
+<!--<li><a target="_blank" title="Senior Analyst, Continuing Professional and Online Higher Education" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/sr-analyst-he">Senior Analyst, Continuing Professional and Online Higher Education</a></li>-->
+<li><a target="_blank" title="Contract Enrollment Management and Development Analysts" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/contract-em-dev-analysts">Contract Enrollment Management and Development Analysts</a></li>
+<li><a target="_blank" title="Contract Business Research Consultants" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/contract-brc">Contract Business Research Consultants</a></li>
+<li><a target="_blank" title="Contract Senior Quantitative Research Analysts" href="http://www.eduventures.com/about/careers/job-opportunities/research-consulting/contract-senior-qra">Contract Senior Quantitative Research Analysts</a></li>
+<li><a target="_blank" title="Internship_Program" href="http://www.eduventures.com/about/careers/intern">Internship Opportunities</a></li></ul>
+</td>
+<td valign="top">
+<ul >
+<li><a target="_blank" href="http://www.eduventures.com/about/careers/we">Benefits &amp; Company Culture</a></li>
+<li><a target="_blank" href="http://www.eduventures.com/about/careers/us">Employee Testimonials</a></li>
+<li><a target="_blank" href="http://www.eduventures.com/about/our-values">Our Corporate Values</a></li>
+<li><a target="_blank" href="http://www.eduventures.com/about/outreach">Community Outreach</a></li></ul>
+</td>
+</tr>
+</tbody>
+</table>
+</apex:page>

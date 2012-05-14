@@ -1,0 +1,66 @@
+<apex:page standardController="EVQuote__c" extensions="ConvertQuoteController">
+<apex:form id="theForm"> 
+<apex:outputText value="{!EVQuote__c.Account__r.Name }" rendered="false" />
+    <apex:pageBlock title="Convert a Quote to {!if(LEN(EVQuote__c.Product_Group__c) > 3,'LOAs','an LOA')}" >
+        <apex:pageBlockButtons rendered="{!if(EVQuote__c.Status__c == 'Approved',true,false)}">
+            <apex:commandButton action="{!back}" immediate="true" value="Go Back" disabled="{!stepcount == 1 || stepcount > 3 }" />
+            <apex:commandButton action="{!next}" value="{!if(stepcount != 3,'Next Step','Book Sales and Create LOA(s)')}" disabled="{!stepcount > 3}" />
+            <apex:commandButton action="{!cancel}" value="Cancel" disabled="{!stepcount > 3 }"/>
+        </apex:pageBlockButtons>
+        <apex:pageMessages escape="false" />
+        <apex:pageBlockSection collapsible="false" title="Details for quote #{!EVQuote__c.Name}" >     
+            <apex:outputField value="{!EVQuote__c.Account__c}" style="width:200px;"  />    
+            <apex:outputField value="{!EVQuote__c.Primary_Contact__c}" rendered="{!stepcount != 1}"  /> 
+            <apex:inputField value="{!EVQuote__c.Primary_Contact__c}" required="true" rendered="{!stepcount == 1}"  />            
+            <apex:outputField value="{!EVQuote__c.Product_Group__c}" />           
+            <apex:outputField value="{!EVQuote__c.Payment_Terms__c}" />
+            <apex:outputField value="{!EVQuote__c.Contract_Length__c}" />
+            <apex:outputField value="{!EVQuote__c.AMM_Pass_Count__c}" />
+            <apex:outputField value="{!EVQuote__c.Price__c}" />
+            <apex:outputField value="{!EVQuote__c.Custom_Analysis_Limit__c}" />
+            <apex:outputField value="{!EVQuote__c.LOA_Start_Date__c}" rendered="{!stepcount != 1}"  />
+            <apex:inputField required="true" value="{!EVQuote__c.LOA_Start_Date__c}"  rendered="{!stepcount == 1}"  />
+            <apex:outputField value="{!EVQuote__c.Member_Roundtable_Access__c}" />
+            <apex:outputField value="{!EVQuote__c.Offer_Date__c}" />
+            <apex:outputField value="{!EVQuote__c.Website_Access__c}" />   
+            <apex:outputField value="{!EVQuote__c.Strategy_Session_Access__c}" />        
+            <apex:outputField value="{!EVQuote__c.Offer_Expiration_Date__c}" />
+            <apex:outputField value="{!EVQuote__c.Hybrid__c}" />
+        </apex:pageBlockSection> 
+        <apex:pageBlockSection collapsible="false" columns="3" title="Confirm the Opportunity Details"  rendered="{!stepcount == 2}" >     
+            <apex:repeat value="{!oppsToClose}" var="op" >
+                <apex:outputField value="{!op.Name}" />
+                <apex:inputField value="{!op.Close_Date_New__c}" />
+                <apex:outputField value="{!op.StageName}" />
+            </apex:repeat>
+        </apex:pageBlockSection>
+        <apex:pageBlockSection collapsible="false" columns="3" title="Confirm the Opportunity Details"  rendered="{!stepcount > 2}" >     
+            <apex:repeat value="{!oppsToClose}" var="op" >
+                <apex:outputField value="{!op.Name}" />
+                <apex:outputField value="{!op.Close_Date_New__c}" />
+                <apex:outputField value="{!op.StageName}" />
+            </apex:repeat>
+        </apex:pageBlockSection>
+         <apex:pageBlockSection collapsible="false" columns="6" title="Review LOA Data" rendered="{!stepcount == 3}" >     
+             <apex:repeat value="{!loasToCreate}" var="loa">
+                 <apex:outputField value="{!loa.Name}" />
+                 <apex:inputField required="true" value="{!loa.Amount__c}" />
+                 <apex:inputField value="{!loa.Agreement_Date__c}" />
+                 <apex:inputField value="{!loa.Start_Date__c}" />
+                 <apex:inputField value="{!loa.End_Date__c}" />
+                 <apex:inputField value="{!loa.Billing_Contact__c}" />
+            </apex:repeat>
+        </apex:pageBlockSection>
+        <apex:pageBlockSection collapsible="false" columns="5" title="The New LOAs" rendered="{!stepcount > 3}" >     
+             <apex:repeat value="{!loasToCreate}" var="loa">
+                 <apex:outputLink value="/{!loa.Id}" target="blank">{!loa.Name}</apex:outputLink>
+                 <apex:outputField value="{!loa.Amount__c}" />
+                 <apex:outputField value="{!loa.Agreement_Date__c}" />
+                 <apex:outputField value="{!loa.Start_Date__c}" />
+                 <apex:outputField value="{!loa.End_Date__c}" />
+            </apex:repeat>
+        </apex:pageBlockSection>
+        
+    </apex:pageBlock>
+</apex:form>     
+</apex:page>

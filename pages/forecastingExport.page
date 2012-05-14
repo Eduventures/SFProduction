@@ -1,0 +1,303 @@
+<apex:page controller="ForecastingController" showHeader="false" standardstylesheets="false"  contenttype="application/vnd.ms-excel#salesforecastExport{!TODAY()}.xls" >
+<style type="text/css">
+.dollars {
+        width: 75px !important;
+        background-color:lightgray; 
+}
+
+.percent {
+        width: 45px !important;;
+}
+
+.rowOdd {
+    background-color:lightgreen;
+}
+
+table.custom {
+        border-width: 1px;
+        width:100%;
+        border-spacing: 0px;
+        border-style: inset;
+        border-color: black;
+        border-collapse: separate;
+        background-color: white;
+}
+table.custom th {
+        border-width: 1px !important;
+        padding: 5px;
+        border-style: inset;
+        white-space: pre-line;
+        border-color: black;
+        background-color:lightgray;
+        -moz-border-radius: ;
+}
+table.custom td {
+        border-width: 1px;
+        padding: 1px;
+        border-style: inset;
+        border-color: gray;
+        text-align: right;
+        padding:2px;
+        -moz-border-radius: ;
+}
+table.custom tr.quarter td{
+    background-color:lightgray;
+    border-width: 2px 1px 2px 1px !important;
+    border-color: black  !important;
+    border-style: solid !important;
+}
+
+table.custom tr.gt {
+    background-color:lightgreen;
+    border-width: 2px 1px 2px 1px !important;
+    border-color: black  !important;
+    border-style: solid !important;
+}
+table.custom tr td.subtotalHighlight1{
+    background-color:yellow;
+    border-width: 1px 2px 1px 2px !important;
+    border-color: black  !important;
+    border-style: solid !important;
+}
+
+
+.subtotalHighlight1 {
+    background-color:yellow;
+    border-style: solid;
+}
+
+.subtotalHighlight2 {
+    background-color:lightgray;
+    border-width: 5px;
+    border-style: solid;
+}
+
+.subtotalHighlight3 {
+    background-color:lightblue;
+}
+
+</style>
+
+<p>Report Exported: {!NOW()}</p>
+<apex:pageBlock title="Sales Forecasting Snapshot" >
+    <table class="custom">
+        <th style="background-color:black"> </th>
+        <th><a href="#lcns" >LC Actual New Sales</a> <a name="lcnewsalestop"> </a></th>
+        <th><a href="#lcrs" >LC Actual Renewal Sales</a> <a name="lcrenewsalestop"> </a></th>
+        <th>LC Total Actual Sales</th>
+        <th><a href="#lcno" >LC Forecast New Sales</a> <a name="lcnewoppstop"> </a></th>
+        <th><a href="#lcro" >LC Forecast Renew Sales</a> <a name="lcrenewoppstop"> </a></th>
+        <th>LC Forecast Total Sales</th>
+        <th>LC Total (Actual / Forecast)</th>
+        <th>LC Plan</th> 
+        <th>LC Change from Prior Forecast</th>
+        <th><a href="#es">ECS Actual Sales</a> <a name="ecssalestop" > </a></th>
+        <th><a href="#eo">ECS Forecast</a> <a name="ecsoppstop" > </a></th>
+        <th>ECS Total (Actual / Forecast)</th>
+        <th>ECS Plan</th>
+        <th>ECS Change from Prior Forecast</th>       
+        <th><a href="#os">Other Actual Sales </a><a name="othersalestop" > </a></th>
+        <th><a href="#oo">Other Forecast</a> <a name="otheroppstop" > </a></th>
+        <th>Other Total (Actual / Forecast)</th>
+        <th>Other Plan</th>
+        <th>Other Change from Prior Forecast</th>
+        <th>Total Sales Actual</th>    
+        <th>Total Sales Forecast</th>
+        <th>Total Plan</th>
+        <th>Total Change from Prior Forecast</th>
+        <th>P (+/-)</th>           
+        <apex:repeat value="{!quarters}" var="quarter">
+            <apex:repeat value="{!quarter.months}" var="month"> 
+            <tr>
+                <td><b>{!month.Name}</b></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newLCSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewalLCSales}"/></apex:outputText></td>
+                <td class="dollars subtotalHighlight3"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalLCSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.forecastedLCNew}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.forecastedLCRenewal}"/></apex:outputText></td>
+                <td class="dollars subtotalHighlight3"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.forecastedLC}"/></apex:outputText></td>
+                <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalLCSalesWF}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.LCPlan}"/></apex:outputText></td>
+                <td class="dollars" style="background-color:orange"> </td> 
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.ECSSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.forecastedECS}"/></apex:outputText></td>                 
+                <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalECSSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.ECSPlan}"/></apex:outputText></td>               
+                <td class="dollars" style="background-color:orange"> </td> 
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.OtherSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.forecastedOther}"/></apex:outputText></td>                 
+                <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalOtherSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.OtherPlan}"/></apex:outputText></td> 
+                <td class="dollars" style="background-color:orange"> </td> 
+                <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalActualSales}"/></apex:outputText></td>
+                <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalSales}"/></apex:outputText></td>
+                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalPlan}"/></apex:outputText></td>
+                <td class="dollars" style="background-color:orange"> </td>  
+                <td class="dollars"><apex:outputText value="{!month.pValue}"/></td>     
+            </tr>
+            </apex:repeat>
+        <tr class="quarter">
+            <td ><b>{!quarter.Name}</b></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.newLCSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.renewalLCSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalLCSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.forecastedLCNew}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.forecastedLCRenewal}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.forecastedLC}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalLCSalesWF}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.LCPlan}"/></apex:outputText></td> 
+            <td class="dollars" style="background-color:orange"> </td> 
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.ECSSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.forecastedECS}"/></apex:outputText></td>                 
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalECSSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.ECSPlan}"/></apex:outputText></td>                
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.OtherSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.forecastedOther}"/></apex:outputText></td>                 
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalOtherSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.OtherPlan}"/></apex:outputText></td>           
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalActualSales}"/></apex:outputText></td>           
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalPlan}"/></apex:outputText></td>
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars"><apex:outputText value="{!quarter.pValue}"/></td>         
+        </tr>
+        </apex:repeat>
+        <tr class="gt">
+            <td ><b>{!YEAR(TODAY())}</b></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!newLCSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!renewalLCSales}"/></apex:outputText></td>
+            <td class="dollars subtotalHighlight3"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalLCSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!forecastedLCNew}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!forecastedLCRenewal}"/></apex:outputText></td>
+            <td class="dollars subtotalHighlight3"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!forecastedLC}"/></apex:outputText></td>
+            <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalLCSalesWF}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!LCPlan}"/></apex:outputText></td> 
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!ECSSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!forecastedECS}"/></apex:outputText></td>                 
+            <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalECSSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!ECSPlan}"/></apex:outputText></td>                
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!OtherSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!forecastedOther}"/></apex:outputText></td>                 
+            <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalOtherSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!OtherPlan}"/></apex:outputText></td>                          
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars subtotalHighlight3"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalActualSales}"/></apex:outputText></td>      
+            <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalSales}"/></apex:outputText></td>
+            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!totalPlan}"/></apex:outputText></td>
+            <td class="dollars" style="background-color:orange"> </td>
+            <td class="dollars" style="background-color:lightyellow"><apex:outputText value="{!pValue}"/></td>       
+        </tr>
+    </table>
+
+
+		<table>
+		<p><a name="lcns"> </a></p>
+		<tr><td colspan="4"><b>LC New Sales</b> <a href="#lcnewsalestop" >^back to top^</a></td></tr>
+			<apex:repeat value="{!newLCSalesList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale"  rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Recognition_Date__c}"/>
+                    <apex:column value="{!sale.LOA__r.Agreement_Date__c}"/>
+                    <apex:column value="{!sale.AV__c}"/>
+                </apex:pageBlockTable>
+            </apex:repeat>
+        
+        <p><a name="lcno"> </a></p>    
+		<tr><td colspan="4"><b>LC New Opportunities</b> <a href="#lcnewoppstop" >^back to top^</a></td></tr>
+            <apex:repeat value="{!forecastedLCNewList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Close_Date_New__c}" style="background-color:{!IF(sale.Close_Date_New__c < TODAY(),'red','')}" />
+                    <apex:column value="{!sale.Annualized_Value__c}" style="background-color:{!IF(sale.Annualized_Value__c > 0,'','red')}" />
+                    <apex:column value="{!sale.Amount}"/>
+                </apex:pageBlockTable>
+            </apex:repeat>   
+        
+        <p><a name="lcrs"></a></p> 
+		<tr><td colspan="4"><b>LC Renewal Sales</b> <a href="#lcrenewsalestop" >^back to top^</a> </td></tr>
+            <apex:repeat value="{!renewalLCSalesList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Recognition_Date__c}"/>
+                    <apex:column value="{!sale.LOA__r.Agreement_Date__c}"/>
+                    <apex:column value="{!sale.AV__c}"/>
+                </apex:pageBlockTable>
+            </apex:repeat>
+
+		<p><a name="lcro"> </a></p>
+     	<tr><td colspan="4"><b>LC Renewal Opportunities</b></td><td><a href="#lcrenewoppstop" >^back to top^</a></td></tr>
+           <apex:repeat value="{!forecastedLCRenewalList}" var="month">
+               <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                   <apex:column >
+                       <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                   </apex:column>
+                   <apex:column value="{!sale.Original_LOA_Expiration_Date__c}" style="background-color:{!IF(sale.Original_LOA_Expiration_Date__c < TODAY(),'red','')}"/>
+                   <apex:column value="{!sale.Close_Date_New__c}" style="background-color:{!IF(sale.Close_Date_New__c < TODAY(),'red','')}" />
+                   <apex:column value="{!sale.Annualized_Value__c}" style="background-color:{!IF(sale.Annualized_Value__c > 0,'','red')}" />
+                   <apex:column value="{!sale.Amount}"/>
+               </apex:pageBlockTable>
+           </apex:repeat>                 
+
+		<p><a name="es"> </a></p>
+		<tr><td colspan="2"><b>ECS New Sales</b></td><td> <a href="#ecssalestop" >^back to top^ </a></td></tr>
+            <apex:repeat value="{!ECSSalesList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Recognition_Date__c}"/>
+                    <apex:column value="{!sale.AV__c}"/>
+                </apex:pageBlockTable>
+            </apex:repeat>
+
+		<p><a name="eo"> </a></p>
+		<tr><td colspan="2"><b>ECS Opportunities</b></td><td><a href="#ecsoppstop" >^back to top^ </a> </td></tr>
+            <apex:repeat value="{!forecastedECSList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Close_Date_New__c}" style="background-color:{!IF(sale.Close_Date_New__c < TODAY(),'red','')}" />
+                    <apex:column value="{!sale.Amount}" style="background-color:{!IF(sale.Amount > 0,'','red')}" />
+                </apex:pageBlockTable>
+            </apex:repeat>      
+        
+        <p><a name="os"> </a></p>
+        <tr><td colspan="3"><b>Other Sales</b></td><td> <a href="#othersalestop" >^back to top^</a></td></tr>
+            <apex:repeat value="{!OtherSalesList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Recognition_Date__c}"/>
+                    <apex:column value="{!sale.AV__c}"/>
+                    <apex:column value="{!sale.Program_Family__c}"/>
+                </apex:pageBlockTable>
+            </apex:repeat>
+        
+        <p><a name="oo"> </a></p>     
+     	<tr><td colspan="3"><b>Other Opportunities</b></td><td><a href="#otheroppstop" >^back to top^</a></td></tr>
+            <apex:repeat value="{!forecastedOtherList}" var="month">
+                <apex:pageBlockTable value="{!month}" var="sale" rendered="{! month.size > 0 }" style="border-width:1px;border-style:solid;border-color:black;">
+                    <apex:column >
+                        <apex:outputLink target="_blank" value="{! baseurl + '/' + sale.Id}" >{!sale.Name}</apex:outputLink>
+                    </apex:column>
+                    <apex:column value="{!sale.Close_Date_New__c}" style="background-color:{!IF(sale.Close_Date_New__c < TODAY(),'red','')}" />
+                    <apex:column value="{!sale.Amount}" style="background-color:{!IF(sale.Amount > 0,'','red')}" />
+                    <apex:column value="{!sale.Product_Group__c}"/>
+                </apex:pageBlockTable>
+            </apex:repeat>
+		</table>
+
+</apex:pageBlock>           
+</apex:page>

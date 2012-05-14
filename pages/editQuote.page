@@ -1,0 +1,107 @@
+<apex:page standardController="EVQuote__c" extensions="EditQuoteController" >
+<apex:form id="quoteform" >
+<apex:pageBlock > 
+    <apex:pageBlockButtons location="bottom" >
+    <apex:outputPanel id="pagebuttons"> 
+        <apex:commandButton value="Save" action="{!save}" id="saveButton" disabled="{!OR(ISNULL(selectedOpps),editMode)}" />
+        <apex:commandButton value="Cancel" action="{!cancel}" id="cancelButton"  />
+    </apex:outputPanel>
+    </apex:pageBlockButtons>
+<apex:pageMessages ></apex:pageMessages>   
+    <apex:pageBlockSection columns="2" collapsible="false" title="Quote Products" id="quoteproducts">
+        <apex:outputPanel id="oppssection" style="width:50%;" > 
+        <table cellspacing="8px" width="100%">
+        <tr>
+            <td width="100%" align="left">
+                <table cellspacing="0px" cellpadding="8px" border="2" bordercolor="#000000" class="oppstable">
+                <caption><h2>Available Opps</h2></caption>
+                <tr bgcolor="#D4C1DE">
+                    <th> </th>
+                    <th>Name</th>
+                    <th>Stage</th>
+                    <th>Product</th>
+                    <th>Sales Price</th>
+                    <th>Close Date - EV</th>                    
+                </tr>
+                <apex:repeat value="{!accountOpps}" var="aop" >
+                <tr>
+                    <td>
+                        <apex:commandLink action="{!selectOpp}" title="Add to Quote" value="Add" rerender="oppssection,quoteproducts" > 
+                            <apex:param name="addid" value="{!aop.Id}" />
+                        </apex:commandLink>
+                    </td>
+                    <td><apex:outputField value="{!aop.Name}"/></td> 
+                    <td>{!aop.StageName}</td> 
+                    <td>{!aop.Product_Group__c}</td>
+                    <td><apex:outputField value="{!aop.Amount}" /></td> 
+                    <td><apex:outputField value="{!aop.Close_Date_New__c}" /></td> 
+                </tr>
+                </apex:repeat>
+                </table> 
+            </td>
+        </tr>
+        </table>
+        </apex:outputPanel>         
+        <apex:outputPanel id="qiList">
+            <table>
+            <tr><th><strong>Selected Products</strong></th></tr>
+             <apex:repeat value="{!quoteItems}" var="item" >
+                <apex:outputPanel id="editRow" layout="none"  rendered="{!item.Opportunity__c == editingItem.Opportunity__c}" >
+                    <tr class="listrow">           
+                        <td class="listcell">
+                            <apex:selectList value="{!item.Product_Group__c}" size="1" >
+                                <apex:selectOptions value="{!productOptions}" />
+                            </apex:selectList>
+                        </td>
+                        <td class="listcell"><apex:inputField required="true" value="{!item.Opportunity_Price__c}"/></td>
+                        <td class="listcell"><apex:commandLink action="{!saveEdit}" rerender="quoteproducts" >Save</apex:commandLink></td>
+                        <td class="listcell"><apex:commandLink action="{!cancelEdit}" rerender="qiList">Cancel</apex:commandLink></td>
+                    </tr>
+                </apex:outputPanel>
+                <apex:outputPanel id="viewRow" layout="none" rendered="{!item.Opportunity__c !=  editingItem.Opportunity__c}">
+                    <tr class="listHover" >
+                        <td class="listcell"><apex:outputField value="{!item.Product_Group__c}" /></td>
+                        <td class="listcell"><apex:outputField value="{!item.Opportunity_Price__c}"/></td>
+                        <td class="listcell"> 
+                            <apex:commandLink value="Edit" action="{!edititem}" rerender="qiList"> 
+                                <apex:param name="editid" value="{!item.Opportunity__c}"/>
+                            </apex:commandLink>
+                        </td>
+                        <td class="listcell">
+                            <apex:commandLink style="color:red;" action="{!removeOpp}" value="Remove" rerender="quoteproducts" >
+                                <apex:param name="remid" value="{!item.Opportunity__c}" />
+                            </apex:commandLink>
+                        </td>                           
+                    </tr>
+                </apex:outputPanel> 
+            </apex:repeat>
+            </table>
+        </apex:outputPanel>         
+        <apex:outputPanel style="font-weight:bold;font-size:2em;width:50%;" > 
+            <div>Final Product List: </div><div><apex:outputField value="{!EVQuote__c.Product_Group__c}" /></div>
+        </apex:outputPanel> 
+        <apex:outputPanel style="font-weight:bold;font-size:2em;width:50%;" > 
+            <div>Total Quote Price: </div><div><apex:outputField value="{!EVQuote__c.Price__c}" /></div>
+         </apex:outputPanel>
+    </apex:pageBlockSection>
+    <apex:pageBlockSection columns="2" collapsible="false" title="Quote Details" id="quotedetails">
+        <apex:outputField value="{!EVQuote__c.Account__c}" style="width:200px;"  />
+        <apex:inputField value="{!EVQuote__c.Primary_Contact__c}" />                   
+        <apex:inputField value="{!EVQuote__c.Contract_Length__c}" />
+        <apex:inputField value="{!EVQuote__c.AMM_Pass_Count__c}" />
+        <apex:inputField value="{!EVQuote__c.Custom_Analysis_Limit__c}" />
+        <apex:inputField value="{!EVQuote__c.LOA_Start_Date__c}" />
+        <apex:inputField value="{!EVQuote__c.Member_Roundtable_Access__c}" />
+        <apex:inputField value="{!EVQuote__c.Offer_Date__c}" />
+        <apex:inputField value="{!EVQuote__c.Strategy_Session_Access__c}" />        
+        <apex:inputField value="{!EVQuote__c.Offer_Expiration_Date__c}" />
+        <apex:inputField value="{!EVQuote__c.Website_Access__c}" />    
+        <apex:inputField value="{!EVQuote__c.Hybrid__c}" />
+        <apex:inputField value="{!EVQuote__c.Fee_info__c}" style="width:400px;" />
+    </apex:pageBlockSection>
+    <apex:pageBlockSection columns="1">        
+        <apex:inputField value="{!EVQuote__c.Payment_Terms__c}" />
+    </apex:pageBlockSection>             
+</apex:pageBlock>
+</apex:form>
+</apex:page>

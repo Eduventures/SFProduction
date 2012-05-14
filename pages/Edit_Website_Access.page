@@ -1,0 +1,44 @@
+<apex:page controller="WebsiteAccessController">
+
+    <apex:form id="theForm"> 
+        <apex:pageBlock id="thePageBlock" title="Editing contacts from {!acct.name}">
+            <apex:pageMessages />
+            <apex:pageMessage id="msg"  detail="{!message}" severity="info"></apex:pageMessage> 
+            <apex:pageBlockTable value="{!accountStaff}" var="staffMember" id="thePageBlockTable" > 
+                <apex:column >
+                    <apex:facet name="header">Name</apex:facet>
+                    <apex:outputField value="{!staffMember.Name}" id="staffMemberName" /> 
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Email Address</apex:facet>
+                    <apex:outputField value="{!staffMember.Email}" id="staffMemberEmail" /> 
+                </apex:column>
+               <apex:column >
+                    <apex:facet name="header">Website Access</apex:facet>
+                    <apex:outputField value="{!staffMember.Seat_Holder__c}" id="staffMemberWA" />  
+                </apex:column>                 
+                <apex:column >
+                    <apex:facet name="header">Membership Role</apex:facet>
+                    <apex:outputField value="{!staffMember.Membership_Role__c}" id="staffMemberMR" />  
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Membership History</apex:facet>
+                    <apex:outputField value="{!staffMember.Membership_History__c}" id="staffMemberMH" />  
+                </apex:column>                
+                <apex:column >
+                    <apex:facet name="header">Website Username</apex:facet>
+                    <apex:outputField value="{!staffMember.Website_Username__c}" id="staffMemberWU" />  
+                </apex:column>                   
+                <apex:inlineEditSupport event="ondblClick"  showOnEdit="saveButton,cancelButton" hideOnEdit="editButton" /> 
+            </apex:pageBlockTable> 
+            
+            <apex:pageBlockButtons > 
+                <apex:commandButton value="Edit" action="{!}" id="editButton" />
+                <apex:commandButton value="Save" action="{!}" id="saveButton" rendered="false" />
+                <apex:commandButton value="Cancel" action="{!}" id="cancelButton"  rendered="false" />
+            </apex:pageBlockButtons> 
+
+        </apex:pageBlock> 
+    </apex:form>
+
+</apex:page>

@@ -1,0 +1,41 @@
+<apex:page standardController="Case" action="{!initialize}" extensions="CaseControllerExtension" >
+
+   <style>
+    textarea {width:100%;}
+   </style>
+
+
+    <apex:sectionHeader title="New Case" />
+    <apex:form >
+        <apex:pageBlock id="caseInputForm" mode="edit"  >   
+        <apex:pageBlockButtons location="bottom">
+                <apex:commandButton title="Continue" value="Continue" rendered="{! !continueTest}" action="{!continueForm}" reRender="caseInputForm" />
+                <apex:commandButton value="Submit Ticket" action="{!save}" disabled="{! !continueTest}"/>
+                <apex:commandButton value="Cancel" action="{!cancel}"/>              
+        </apex:pageBlockButtons>  
+            <apex:pageBlockSection columns="1" rendered="{!CountOutstandingIssues != 0 && continueTest == false}">
+                <apex:pageMessage escape="false" severity="INFO" strength="3" summary="ATTENTION! The IT Team is 
+                currently working on a known problem, before you submit this case read the message(s) below and 
+                then select 'continue' if your issue is different."  />
+            </apex:pageBlockSection>
+            <apex:pageBlockSection ><apex:pageMessages ></apex:pageMessages></apex:pageBlockSection>
+            <apex:pageBlockSection columns="1" rendered="{!CountOutstandingIssues == 0 || continueTest == true}">
+                <apex:inputField value="{!newCase.ContactId}" required="true"/>
+                <apex:inputField value="{!newCase.Priority}"/>
+                <apex:inputField value="{!newCase.Type}" required="true"/> 
+                <apex:pageBlockSectionItem ><apex:outputLabel >Brief Explanation</apex:outputLabel><apex:inputField style="width:250px;" value="{!newCase.Subject}" required="true"/></apex:pageBlockSectionItem>
+                <apex:inputField value="{!newCase.Description}" required="true"/>
+            </apex:pageBlockSection>
+               
+            <apex:pageBlockSection title="IT Admin Section" rendered="{!continueTest && ($Profile.Name == 'System Administrator' || $Profile.Name == 'IT User')}">         
+                <apex:inputField value="{!newCase.Status}"  />
+                <apex:inputField value="{!newCase.Problem_Detail__c}" />
+                <apex:inputField value="{!newCase.Subject}"/>
+                <apex:inputField value="{!newCase.Origin}"  />
+                <apex:inputField value="{!newCase.Follow_Up_Date__c}"  />
+                <apex:inputField value="{!newCase.Systemwide_Issue__c}"/>
+                <apex:inputField value="{!newCase.Systemwide_Issue_Message__c}"/>
+            </apex:pageBlockSection>             
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

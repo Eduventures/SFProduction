@@ -1,0 +1,96 @@
+<apex:page standardController="Account" extensions="ManageWebsiteAccessController">
+<script type="text/javascript">
+    var countSelected = 0;
+    function setSelected(cid,status,domid) { 
+        //alert('cid =' + cid + ' status = ' + status );
+        //var theBox = document.getElementById(domid);
+        //alert(theBox.id);
+        //alert('status = '+ status );
+        if(status)
+        {
+            countSelected = countSelected + 1;  
+        } else {
+            countSelected = countSelected - 1;
+        }
+        //alert('countSelected = ' + countSelected);
+        if(countSelected < 11)
+        {
+            toggleSelected(cid,status);
+        } else {
+            alert('Oops, to keep from choking the website (she\'s a little slow) we don\'t let you - or anyone, not even AJ - update more than 10 Contacts at a time, please hit Save and continue. You can do more when this batch is done. Thank you!');
+            var theBox = document.getElementById(domid);
+            theBox.checked = false;
+        }
+    }
+</script>
+
+    <apex:form id="theForm"> 
+<apex:actionFunction action="{!toggleSelected}" name="toggleSelected" reRender="buttonPanel">
+  <apex:param name="cid" value="" />
+  <apex:param name="status" value=""  />
+</apex:actionFunction>
+        <apex:pageBlock id="thePageBlock" title="Add website access to multiple contacts" >
+        <apex:actionRegion >
+        <h1>{!acct.name}</h1>
+            <apex:outputText escape="false" ><p>Please note, the <strong>maximum</strong> number of people you can update at one time has been <strong>limited to 10</strong> (for website performance reasons). If you need to do more than ten, you will be kept on the same screen after you've hit 'Save' - so you can submit additional batches of user updates.</p></apex:outputText>
+            <br />
+            <apex:outputLabel value="Choose program to provide access to:" for="programs"/>
+            
+            <apex:selectList size="1" value="{!programToAdd}" id="programs">
+                <apex:selectOptions value="{!ActivePrograms}"/>
+            </apex:selectList>
+            <apex:pageBlockSection >
+            <apex:outputPanel id="buttonPanel">
+                <apex:commandButton value="Save" action="{!save}" id="saveButton" rendered="{!isDirty == true}"  />
+                <apex:commandButton value="Cancel" action="{!cancel}" id="cancelButton"  rendered="{!isDirty == true}" />
+            </apex:outputPanel> 
+            </apex:pageBlockSection>
+            <apex:pageMessages />
+            
+            <apex:pageMessage id="msg" rendered="{!message != ''}"  detail="{!message}" severity="info"></apex:pageMessage> 
+<br /><br />
+            <apex:pageBlockTable value="{!accountStaff}" var="staffMember" id="thePageBlockTable" >
+            <apex:outputText value="{!staffMember.con.accountId}" rendered="true"/> 
+                <apex:column >
+                    <apex:facet name="header">Select</apex:facet>
+                    <apex:inputCheckbox value="{!staffMember.selected}" onclick="setSelected('{!staffMember.con.Id}',this.checked,this.id)" id="staffSelected" />
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Name</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Name}" id="staffMemberName" /> 
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Last Modified</apex:facet>
+                    <apex:outputField value="{!staffMember.con.LastModifiedDate}" id="staffMemberModified" /> 
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Email Address</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Email}" id="staffMemberEmail" /> 
+                </apex:column>
+               <apex:column >
+                    <apex:facet name="header">Website Access</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Seat_Holder__c}" id="staffMemberWA" />  
+                </apex:column>                 
+                <apex:column >
+                    <apex:facet name="header">Membership Role</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Membership_Role__c}" id="staffMemberMR" />  
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Membership History</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Membership_History__c}" id="staffMemberMH" />  
+                </apex:column>                
+                <apex:column >
+                    <apex:facet name="header">Website Username</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Website_Username__c}" id="staffMemberWU" />  
+                </apex:column>
+                <apex:column >
+                    <apex:facet name="header">Contact Status</apex:facet>
+                    <apex:outputField value="{!staffMember.con.Status__c}" id="staffMemberStatus" />  
+                </apex:column>
+            </apex:pageBlockTable> 
+           
+        </apex:actionRegion>
+        </apex:pageBlock> 
+    </apex:form>
+
+</apex:page>

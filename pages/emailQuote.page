@@ -1,0 +1,45 @@
+<apex:page standardController="EVQuote__c" extensions="emailQuoteController" >
+<apex:form >
+<apex:pageBlock id="thePage" >
+	<apex:outputField value="{!EVQuote__c.Id}" rendered="false" />
+	<apex:outputField value="{!EVQuote__c.Status__c}" rendered="false" />
+	<apex:outputField value="{!EVQuote__c.Primary_Contact__c}" rendered="false" />
+	<apex:outputField value="{!EVQuote__c.Product_Group__c}" rendered="false" />
+    <apex:pageBlockButtons location="top" >
+        <apex:outputPanel id="pagebuttons">
+        <apex:commandButton id="continuebtn" value="I have reviewed the quote, please continue" rendered="{!step == 1}" action="{!nextStep}" rerender="thePage" />
+        <apex:commandButton id="reviewbtn" value="Review Message" rendered="{!step == 2}" action="{!nextStep}" rerender="thePage"/>
+        <apex:commandButton id="sendbtn" value="Send Message!" rendered="{!sendEnabled && sendSuccess == false}" action="{!send}" rerender="thePage"/>
+        <apex:commandButton id="backbtn" value="Go Back" rendered="{!step > 1 && sendSuccess == false}" action="{!backStep}" rerender="thePage"/>
+        </apex:outputPanel>
+    </apex:pageBlockButtons>
+    <apex:pageMessages ></apex:pageMessages>
+    <apex:pageBlockSection rendered="{!step ==1}" columns="2" collapsible="false" title="Step 1: Review the Quote to make sure it looks correct">
+        <apex:outputLink target="_blank" value="/apex/QuoteToPDF?scontrolCaching=1&id={!theQuote.Id}">View PDF Version of Quote</apex:outputLink>
+    </apex:pageBlockSection>
+    <apex:pageBlockSection rendered="{!step == 2}"  columns="1" collapsible="false" title="Comopsing Email for LOA Quote #{!EVQuote__c.Name}">
+    To Address: <apex:outputText value="{!toAddr}" />
+    CC: (use commas to separate multiple addresses) <apex:inputText style="width:350px;" value="{!ccAddr}" />
+    Subject <apex:inputText style="width:550px;" value="{!subject}" />
+    Message: (sent in Plain Text) <apex:inputTextarea value="{!body}" style="width:100%" />
+    </apex:pageBlockSection>
+    
+    <apex:pageBlockSection rendered="{!step == 3}"  columns="1" collapsible="false" title="Review Email Details">
+    To Address: <apex:outputText value="{!toAddr}" />
+    CC: (use commas to separate multiple addresses) <apex:outputText style="width:350px;" value="{!ccAddr}" />
+    Subject <apex:outputText style="width:550px;" value="{!subject}" />
+    Message: <apex:outputText value="{!body}" style="width:100%" />
+    </apex:pageBlockSection>
+    
+    <apex:pageBlockSection rendered="{!sendSuccess}"  columns="1" collapsible="false" title="Message Sent">
+    <p>The message was sent successfully. You can <a href="/{!theQuote.Id}" >return to the quote</a>.<br />
+    <br />
+    Don't forget: at any time you can view the recipient's <a href="/{!theQuote.Primary_Contact__c}#{!theQuote.Primary_Contact__c}_RelatedHistoryList_target" >Activity History</a> to confirm if they received the email, and if they opened it.</p>
+
+    </apex:pageBlockSection>
+    
+</apex:pageBlock>
+
+</apex:form>
+
+</apex:page>

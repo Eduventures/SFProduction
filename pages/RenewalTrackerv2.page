@@ -1,0 +1,154 @@
+<apex:page controller="RenewalTrackerControllerv2"> 
+ 
+<apex:pageBlock title="Renewal Tracker">
+<apex:form > 
+    <apex:actionFunction name="modifyRisk" action="{!updateLOA}">
+        <apex:param name="lid" value="" />
+        <apex:param name="risk" value="" />
+    </apex:actionFunction>
+    <apex:pageBlockSection >
+       <apex:outputPanel id="theForm">
+       Choose a Program:  <apex:selectList value="{!selectedProgram}" size="1">
+        <apex:selectOptions value="{!currentPrograms}" />
+        </apex:selectList> &nbsp;    
+       Choose a Year:  <apex:selectList value="{!selectedYear}" size="1">
+        <apex:selectOptions value="{!years}" />
+        </apex:selectList> &nbsp;         
+        <apex:commandButton action="{!wrapLOAs}" value="Run Report" reRender="notice,theReport,theForm" status="loadStatus" /> &nbsp;
+        
+        <apex:commandButton action="{!export}" value="Export to XL" />
+       </apex:outputPanel>    
+       <apex:outputPanel style="text-align:center;" >
+            <apex:actionStatus id="loadStatus" >
+            <apex:facet name="start">
+             <h1>Refreshing....<img src="{!$Resource.spin}"/>  </h1>
+            </apex:facet>
+            </apex:actionStatus>
+        </apex:outputPanel>
+
+    </apex:pageBlockSection>
+    
+    <apex:outputPanel id="notice">
+
+        <apex:outputText rendered="{!dirty}"><p style="color:red;font-weight:bold;background-color:yellow;">Note: This report has been edited, the data below is not reflective of the 
+        actual Renewal Risk estimates in the database. Press "Run Report" to reset the report.</p>
+        </apex:outputText>
+    </apex:outputPanel>
+    
+    <apex:outputPanel id="theReport">
+        <table border="1" style="width:100%;border-collapse:collapse;width:100%;">
+        <tr>
+            <td style="width:408px;">
+                <table border="1" style="width:100%;border-collapse:collapse;width:100%;">
+                <tr><td>Renewable Units: {!renewableUnits}</td></tr>
+                <tr><td>Renewals: {!overallRenewalCount}</td></tr>
+                <tr><td>Non-Renewals: {!overallNonRenewalCount}</td></tr>
+                <tr><td>At Risk: {!overallAtRiskCount} </td></tr>
+                <tr><td>Not at Risk: {!overallNotAtRiskCount} </td></tr>
+                <tr><td><b>Actual Unit Renewal Rate:</b> {!YTDrenewalRate} %</td></tr>
+                <tr><td><b>Projected Unit Renewal Rate:</b> {!projectedYTDrenewalRate} %</td></tr>
+                </table>
+            </td>
+            <td style="width:408px;">
+                <table border="1" style="width:100%;border-collapse:collapse;width:100%;">
+                <tr>
+                    <td><b>Available AV:</b></td>
+                    <td><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!overallAvailableAmt}"/></apex:outputText></td>
+                </tr>
+                <tr>
+                    <td><b>Actual Renewed AV:</b></td>
+                    <td><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!overallRenewedAmt}"/></apex:outputText></td>
+                </tr>
+                <tr>
+                    <td><b>Projected Renewal AV:</b></td>
+                    <td><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!overallProjectedRenewalAmt}"/></apex:outputText></td>
+                </tr>             
+                <tr>
+                    <td><b>Plan Renewal Amount:</b></td>
+                    <td><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!overallPlanAmt}"/></apex:outputText></td>
+                </tr>
+                <tr>
+                    <td>&nbsp;</td>
+                </tr>
+                <tr>
+                    <td><b>Actual AV Renewal Rate:</b></td>
+                    <td>{!AV_YTDrenewalRate} %</td>
+                </tr>
+                <tr>
+                    <td><b>Projected AV Renewal Rate:</b></td>
+                    <td>{!AV_projectedYTDrenewalRate} %</td>
+                </tr>           
+                </table>
+            </td>
+            <td>
+                <table border="1" style="width:100%;border-collapse:collapse;width:100%;">
+                <tr bgcolor="#33ff66"><td>Renewed</td></tr>
+                <tr><td>Not At Risk</td></tr>
+                <tr bgcolor="#FFFF66"><td>At Risk</td></tr>
+                <tr bgcolor="#ff9999"><td>Non-Renewal</td></tr>
+                <tr><td>&nbsp;</td></tr>
+                <tr><td><b>Enrichment: <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!enrichmentAmt}"/></apex:outputText></b> = 
+                    Renewal Dollars (<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!overallRenewedAmt}"/></apex:outputText>)  -
+                    AV Dollars(<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!enrichmentBaseAmt}"/></apex:outputText>)</td></tr>
+                <tr><td><b>Enrichment Rate: {!enrichmentRate} %</b> = 
+                    AV Enrichment (<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!enrichmentAmt}"/></apex:outputText>)  / 
+                    AV Dollars (<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!enrichmentBaseAmt}"/></apex:outputText>)</td></tr>
+                </table>
+            </td>
+        </tr>
+        <apex:repeat value="{!calendarGrid}" var="quarter">
+            <tr>
+                <apex:repeat value="{!quarter}" var="month">
+                    <td>
+                        <table border="1" style="width:100%;border-collapse:collapse;">
+                        <tr style="font-weight:bold;background-color:#999999">
+                            <td colspan="6">{!month.monthName}  ({!month.renewedCount}/{!month.loas.size}) <br />
+                            <span style="float:left;width:50%">
+                                Available AV: <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.availableAmt}"/></apex:outputText><br />
+                                Renewed AV: <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewedAmt}"/></apex:outputText><br />
+                                Projected AV: <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.projectedAmt}"/></apex:outputText><br />
+                            </span>
+                            <span>
+                                Enrichment: &nbsp; <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.enrichmentAmt}"/></apex:outputText><br />
+                                Enrichment Rate:  {!month.enrichmentRate} %<br />
+                                Plan <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.planAmt}"/></apex:outputText>
+                            </span>
+                            </td>
+                        </tr>
+                        
+                        <tr style="font-weight:bold;background-color:#999999"><th>LOA name</th><th>End Date</th><th>Renewal<br />Risk</th><th>AV</th><th>Renewed Value</th><th>Enrichment:<br/> $ - (rate)</th></tr>
+                        <apex:repeat value="{!month.loas}" var="cy">
+                            <tr bgcolor="{!if(cy.renewedAmt > 0,'#33FF66', if(cy.theLOA.Renewal_Risk__c = 'Not Renewing', '#FF9999', if(cy.theLOA.Renewal_Risk__c = 'At Risk','#FFFF66','') ) )}">
+                                <td><apex:outputLink value="/{!cy.theLOA.Id}" target="_blank">{!cy.theLOA.Name}</apex:outputLink></td>
+                                <td><apex:outputField value="{!cy.theLOA.End_Date__c}"/></td>
+                                <td><apex:inputField rendered="{! cy.renewedAmt == 0 && TODAY() < (cy.theLOA.End_Date__c + 60) }" value="{!cy.theLOA.Renewal_Risk__c}" onchange="modifyRisk('{!cy.theCY.LOA__c}')" /></td>
+                                <td><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!cy.theCY.AV__c}"/></apex:outputText></td>
+                                <td>
+                                    <apex:outputLink value="/{!cy.theCY.Renewal_Contract_Year__c}" target="_blank" rendered="{!cy.renewedAmt > 0}">
+                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!cy.renewedAmt}"/></apex:outputText>
+                                    </apex:outputLink></td>
+                                <td><apex:outputPanel rendered="{!cy.renewedAmt > 0}">
+                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!cy.enrichmentAmt}"/></apex:outputText> ({!cy.enrichmentRate} %)
+                                    </apex:outputPanel>
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                        
+                        </table>
+                    </td>
+                </apex:repeat>
+            </tr>
+        </apex:repeat>
+        </table>
+        <table width="100%">
+        <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+        <tr><td colspan="2"><b>Actual and Projected Renewal Rate Charts</b> (goal = blue line)</td></tr>
+        <tr>
+            <td width="50%"><apex:image url="http://chart.apis.google.com/chart?chxs=0,676767,12.5,0,l,676767&chxt=y&chbh=a&chs=250x180&cht=bvs&chco=008000,D1EAB6,FFEF00,FF0000,FF9900&chd=t2:{!YTDrenewalRate}|{!NotAtRiskPercentage}|82&chtt={!selectedProgram}+Renewal+Rate+%28%%29&chm=H,0033FF,2,0,2,1&chdl=Actual|Projected" /></td>
+            <td width="50%"><apex:image url="http://chart.apis.google.com/chart?chxs=0,676767,12.5,0,l,676767&chxr=0,0,{!renewableUnits},5&chds=0,{!renewableUnits},0,{!renewableUnits},0,{!renewableUnits},0,{!renewableUnits},0,{!renewableUnits}&chxt=y&chbh=a&chs=250x180&cht=bvs&chco=008000,D1EAB6,FFEF00,FF0000,FF9900&chd=t4:{!overallRenewalCount}|{!overallNotAtRiskCount}|{!overallAtRiskCount}|{!overallNonRenewalCount}|{!targetRenewalCount}&chm=D,0073FF,4,0:0,5,1&chtt={!selectedProgram}+Renewal+Rate+(Unit)&chm=H,0033FF,4,0,2,1&chdl=Renewed|Not+At+Risk|At+Risk|Non-Renewal" /></td>
+        </tr>
+        </table>
+    </apex:outputPanel>
+</apex:form> 
+</apex:pageBlock>
+</apex:page>

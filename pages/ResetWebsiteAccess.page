@@ -1,0 +1,23 @@
+<apex:page standardController="Contact" extensions="ContactResetExtension">
+
+<table>
+<tr>
+    <td width="30%">
+    <apex:form id="resetForm" >
+        <p><b>Attention! </b> This form is used to verify if a Contacts website account still exists on the 
+        site. If it does not (the section to the right will let you know if there is one) then you can reset
+        it in salesforce using the button below and then recreate it .</p> 
+        <p style="color:red;font-weight:bold">NOTE: if you need to change usernames, <a href="mailto:adellicicchi@eduventures.com?subject=username%20change%20for{!Contact.Name}%20id%20{!Contact.Id}">contact AJ Dellicicchi</a> for help<br /> <br/ > </p>
+        <p><apex:commandButton rendered="{! !resetSuccess}" action="{!submitReset}" reRender="resetMessage,resetForm" id="reset" value="Yes, I wish to reset this Contact"/> <apex:commandButton rendered="{! !resetSuccess}" action="{!view}" id="cancel" value="Cancel"/></p>
+    </apex:form>
+    <p> <br /> </p>
+    <apex:outputPanel id="resetMessage">   
+            <apex:outputText rendered="{!resetSuccess}"><b>Reset was successful, you may now retag them as a
+             Seat Holder. Please do not change their username and password as the Contact has already 
+             received an email with this information. <br /> <br /> <apex:outputLink value="/{!Id}">Go Back to the Contact Record</apex:outputLink></b></apex:outputText>       
+        </apex:outputPanel>
+    </td>
+    <td width="70%"><apex:iframe src="http://www.eduventures.com/checkUser?userid={!Contact.Website_Username__c}"/></td>
+</tr>
+</table>
+</apex:page>

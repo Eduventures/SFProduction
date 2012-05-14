@@ -1,0 +1,10 @@
+<apex:page showHeader="false" sidebar="false" controller="renewalsChartController" tabStyle="LOA__c">
+
+<apex:sectionHeader title="Renewal Rates for Current Month"></apex:sectionHeader>
+<div><apex:image url="{!chartData}"></apex:image></div>
+<script type="javascript">
+      window.onload = new function() { 
+        parent.document.getElementById('renewalchart').height = document['body'].offsetHeight;
+      }
+</script>
+</apex:page>

@@ -1,0 +1,27 @@
+<apex:page controller="SubProjectWizardController" tabStyle="Projects__c"  >
+    <apex:stylesheet value="{!$Resource.customLabelStyle}"/>
+    <apex:sectionHeader title="Sub-Project Creation Wizard" subtitle="STEP 2: Confirm the sub-projects to be created"/>
+    <apex:form >
+        <apex:pageBlock title="Confirm sub-projects to be created...">
+      <apex:pageBlockButtons >
+        <apex:commandButton action="{!page1}" value="Previous"/>
+        <apex:commandButton action="{!save}" value="Create Projects!"/>
+      </apex:pageBlockButtons>
+            <apex:pageBlockSection collapsible="false" columns="9">    
+                <apex:outputField value="{!master.Product__c}"></apex:outputField> 
+                <apex:outputLabel value="Program" for="masterProgram" styleClass="labelbold"/>
+                <apex:outPuttext id="masterProgram" value="{!master.Programs__c}"></apex:outputText>                                                                   
+                <apex:outputField id="subProductDiv" value="{!master.Divisions__c}"></apex:outputField>                        
+                <apex:outputLabel value="Master Project Name" for="masterProjectName" styleClass="labelbold"/>   
+                <apex:outPuttext id="masterProjectName" title="Master Project Name" value="{!master.Name}"></apex:outputText>
+                <apex:outputLabel value="Record Type" for="rtSelect2" styleClass="labelbold"/>   
+                <apex:outputtext title="Record Type" value="{!rType.Name}" id="rtSelect2"  ></apex:outputText>                                                       
+            </apex:pageBlockSection> 
+            <apex:pageBlockSection collapsible="false" title="{!SelectedAcctsSize} Members who participated" columns="1">
+                <apex:repeat value="{!selectedAccts}" var="acct" id="selectedDisplayList">
+                    <apex:outputText value="{!acct.Name}" id="acctName"/><br/>
+                </apex:repeat>
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

@@ -1,0 +1,12 @@
+<apex:page controller="monthlySalesTargetsController">
+<p><b>MONTHLY TARGETS (current Month):</b></p>
+<table border="2px" bordercolor="#666666" cellpadding="5px">
+<th>Metric</th><th>Goal</th><th>Actual</th>
+<tr><td><b>New Meetings</b><br /> (8 per staff member * 5 staff)</td><td> 40 </td><td>{!actualNewMeetings}</td></tr>
+<tr><td><b>Followup Meetings</b><br /> (7 per staff member * 5 staff)</td><td> 35 </td><td>{!actualFollowupMeetings}</td></tr>
+<tr><td><b>Upside Opportunities</b><br /> (20 per staff member * 5 staff)</td><td> 100 </td><td>As of the 1st of the Month: {!actualUpsideOpps}</td></tr>
+<tr><td><b>Qualified Opportunities</b><br /> (8 per staff member * 5 staff)</td><td> 40 </td><td>As of the 1st of the Month: {!actualQualifiedOpps}</td></tr>
+<tr><td><b>Closeable Opportunities</b><br /> (4 per staff member * 5 staff)</td><td> 20 </td><td>As of the 1st of the Month: {!actualCloseableOpps}</td></tr>
+<tr><td><b>Closed Won Sales</b><br /> (2 per staff member * 5 staff)</td><td> 10 </td><td>As of the 1st of the Month: {!actualClosedWonSnapshot}, Month to Date: {!actualClosedWonMTD}</td></tr>
+</table>
+</apex:page>

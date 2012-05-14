@@ -1,0 +1,832 @@
+<apex:page controller="BES_clsAddTimeSheetController" tabStyle="My_Time_Sheets__tab"  sidebar="false">
+    <script src="/soap/ajax/13.0/connection.js"></script> 
+    <script src="/soap/ajax/13.0/plsoql.js"></script> 
+    <style>
+        .errorClass
+        {
+            border-color: red;
+            border-thickness: 2px;
+            border-style: solid;
+        }
+        .noErrorClass
+        {
+            
+        }
+        .boldOption
+        {
+            font-weight: bold;
+            color: black;
+        }
+    </style>
+    <script>
+         var sId = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE($Api.Session_ID,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+         //changed on 22nd jan 09.
+         var globalInProcess = false;
+    </script>
+
+    <script>
+        function addNewRow()
+        {
+          try
+          {
+              var allInputs = document.getElementById('tblCon').getElementsByTagName('input');
+              var allSelects = document.getElementById('tblCon').getElementsByTagName('select');
+              var allTextAreas = document.getElementById('tblCon').getElementsByTagName('textarea');
+              var arrSelIndex = new Array();
+              var arrTextAreas = new Array();
+              for(var cnt = 0; cnt < allSelects.length; cnt++)
+              {
+                  arrSelIndex.push(allSelects[cnt].selectedIndex);
+              }
+              for(var cnt = 0; cnt< allTextAreas.length; cnt++)
+              {
+                  arrTextAreas.push(allTextAreas[cnt].value); 
+              }
+              for(var cnt = 0; cnt< allInputs.length; cnt++)
+              {
+                  if(allInputs[cnt].type =="text" ||  allInputs[cnt].type =="hidden");
+                  {
+                     allInputs[cnt].setAttribute("value", allInputs[cnt].value);
+                  }
+              }
+              var strNew = document.getElementById('tblBody').innerHTML + "<TR>"+firstRowHTML+"</TR>";
+              strNew = "<table id=\'tblCon\' width=\'100%\'><tbody id=\'tblBody\'>"+strNew+"</tbody></table>";
+              document.getElementById('spTable').innerHTML =  strNew; 
+              
+              allSelects = document.getElementById('tblCon').getElementsByTagName('select');
+              for(var cnt = 0; cnt < arrSelIndex.length; cnt++)
+              {
+                  allSelects[cnt].selectedIndex = arrSelIndex[cnt];
+              }
+              
+              for(var cnt = 0; cnt < arrTextAreas.length; cnt++)
+              {
+                  document.getElementById('tblCon').getElementsByTagName('textarea')[cnt].value = arrTextAreas[cnt];
+              }
+              higlightSelectEntries();
+              
+          }
+          catch(err)
+          {
+              alert(err.message);
+          }
+          
+          return false;
+        }
+        
+        function removeCurrentRow(r)
+        {
+            var i = r.parentNode.parentNode.rowIndex;
+            document.getElementById('tblCon').deleteRow(i);
+            return false;
+        }
+        function resetTable()
+        {
+            try
+            {
+            var rowCount = document.getElementById('tblCon').getElementsByTagName('tr').length;
+            if(rowCount>1)
+            {
+                for(var i = 1; i < rowCount; i++) 
+                {
+                    document.getElementById('tblCon').deleteRow(1);
+                }
+            }
+            addNewRow();
+            }
+            catch(err)
+            {
+                alert(err.message);
+            }
+            return false;
+        }
+    </script>  
+    <script>
+        var currProjColumn;
+        function openProjectPopup(obj)
+        {
+            currProjColumn = obj;
+            
+            var url  = "../apex/selectProject";
+            openWind(url);
+        }
+        function openWind(URL)
+        {
+            curPopupWindow  = window.open(URL, "_blank","width=500, height=500,dependent=no,resizable=yes,toolbar=no,status=no,directories=no,menubar=no,scrollbars=1", true);
+        }
+
+        function setSelectedProjectDetails(projId, projName)
+        {
+            var inputArr = currProjColumn.getElementsByTagName('input');
+            inputArr[0].value =  projName;
+            inputArr[1].value =  projId;
+            populateModules(currProjColumn, projId);
+            curPopupWindow.close();
+            currProjColumn = null;  
+            
+        }
+        
+        function setSelectedProjectDetailswithEscape(projId)
+        {
+            var inputArr = currProjColumn.getElementsByTagName('input');
+             sforce.connection.sessionId = sId;
+            var str = "SELECT Id, Name FROM Projects__c WHERE Id ='"+projId+"'";
+            var modResult = sforce.connection.query(str);
+            var modRecords = modResult.getArray("records");
+            inputArr[0].value =  modRecords[0].Name;
+            inputArr[1].value =  projId;
+            populateModules(currProjColumn, projId);
+            curPopupWindow.close();
+            currProjColumn = null;  
+        }
+        
+        function  populateModules(currProjColumn, projId)
+    
+        {
+            var moduleSelect = (currProjColumn.parentNode.getElementsByTagName('td')[2]).getElementsByTagName('select')[0];
+            clearModules(moduleSelect);
+            sforce.connection.sessionId = sId;
+            var str = "SELECT Id, Name FROM Project_Module__c WHERE Project__c ='"+projId+"' order by Name asc";
+            var modResult = sforce.connection.query(str);
+            var modRecords = modResult.getArray("records");
+            if(modResult.size > 0)
+            { 
+                 moduleSelect.disabled = false;
+                 for (var i = 0; i< modRecords.length; i++) 
+                 {
+                     var modOption = new Option(modRecords[i].Name,modRecords[i].Id);
+                     moduleSelect.options.add(modOption);   
+                 } 
+            }
+            else
+            {
+                moduleSelect.disabled = true;
+            }
+            
+            moduleSelect = (currProjColumn.parentNode.getElementsByTagName('td')[3]).getElementsByTagName('select')[0];
+            clearModules(moduleSelect);
+            sforce.connection.sessionId = sId;
+            var str = "SELECT Id, Name, Start__c, Project__c, Estimated_Hours__c, Assigned_To__c FROM Project_Milestone__c WHERE Estimated_Hours__c != 0 and Project__c ='"+projId+"' and Assigned_To__c = '{!$User.Id}' order by Start__c asc";
+            var modResult = sforce.connection.query(str);
+            var modRecords = modResult.getArray("records");
+            if(modResult.size > 0)
+            { 
+                 moduleSelect.disabled = false;
+                 for (var i = 0; i< modRecords.length; i++) 
+                 {
+                     var modOption = new Option(modRecords[i].Name,modRecords[i].Id);
+                     moduleSelect.options.add(modOption);   
+                 } 
+            }
+            else
+            {
+                moduleSelect.disabled = true;
+            }
+            
+            
+        }
+        function clearModules(moduleSelect) 
+        {
+            moduleSelect.length = 0; 
+            var modOption = new Option("----- Select -----","");
+            moduleSelect.options.add(modOption);
+        }
+    </script>
+    
+    <script>
+        function removeUnwantedRows()
+        {
+             var trArray = document.getElementById('tblCon').getElementsByTagName('tr');
+             if(trArray.length < 2 )
+             {
+                return false;
+             }
+            
+             for(var i = 1; i < trArray.length; i++ )
+             {
+                 var blnFlag = false;
+                 var tdArr = trArray[i].getElementsByTagName('td');
+
+                 var projInput = (trArray[i].getElementsByTagName('td')[1]).getElementsByTagName('input')[0];
+                 
+                 for(var j = 5; j < 12; j++ )
+                 {
+                    var hrsInput = tdArr[j].getElementsByTagName('input')[0].value;                     
+                    
+                    if(parseFloat(hrsInput) > 0)
+                    {
+                        blnFlag = true ;        
+                        //break;
+                    }
+                 }
+                 //alert(blnFlag);
+                 if((projInput.value == null || projInput.value == '') || blnFlag == false)
+                 {
+                     document.getElementById('tblCon').deleteRow(i);
+                     removeUnwantedRows();
+                 }
+             }
+             return false;
+        }
+        function validateData(goForApproval)
+        {
+            if(isInProcess())
+            {
+                return false;
+            }
+            try
+            {
+                removeUnwantedRows();
+                sforce.connection.sessionId = sId;
+                var hasErrors = false;
+                var trArray = document.getElementById('tblCon').getElementsByTagName('tr');
+                if(trArray.length < 2 )
+                {
+                    return false;
+                }
+                document.getElementById('spErrors').innerHTML = '';
+                var arrTse = new Array();
+                for(var i = 1; i < trArray.length; i++ )
+                {
+                    var tdArr = trArray[i].getElementsByTagName('td');
+                    for(var j = 5; j < 12; j++)
+                    {
+                        
+                        var tse = new sforce.SObject("TimeSheetLine__c");
+                        
+                        var hrsInput = tdArr[j].getElementsByTagName('input')[0];
+                        hrsInput.className = 'noErrorClass'; 
+                        if(hrsInput.value == null || hrsInput.value == '')
+                        {
+                            hrsInput.value = 0;
+                        }
+                        if(hrsInput.value.indexOf(".") == 0 && isNaN(parseFloat(hrsInput.value.substring(0, hrsInput.value.indexOf(".")))))
+                        {
+                            hrsInput.value = '0' + hrsInput.value.substring(hrsInput.value.indexOf("."), hrsInput.value.length); 
+                        }
+                        if(/^-?\d+(\.\d+)?$/.test(hrsInput.value) == false)
+                        {
+                            hasErrors = true;
+                            hrsInput.className = 'errorClass'; 
+                        }
+                        else
+                        {
+                            if(parseFloat(hrsInput.value)>24)
+                            {
+                                hasErrors = true;
+                                hrsInput.className = 'errorClass'; 
+                            }
+                            else
+                            {
+                                tse.Hour__c = parseFloat(hrsInput.value);
+                                tse.UserId__c = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(uId,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+                                tse.Name = dtArray[j-5]; 
+                                tse.Date__c = makeSFDate(dtArray[j-5]); 
+                                tse.RowNo__c = i;
+                                tse.ColNo__c = j-4;
+               
+                            }
+                        }
+                        
+                        var descInput = tdArr[j].getElementsByTagName('textarea')[0];
+                        tse.Description__c = wrapSpace(descInput.value);
+                        
+                        var projInput = (trArray[i].getElementsByTagName('td')[1]).getElementsByTagName('input')[0];
+                        projInput.className =  'noErrorClass'; 
+                        if(projInput.value == null || projInput.value == '')
+                        {
+                            hasErrors = true;
+                            projInput.className = 'errorClass'; 
+                            
+                        }
+                        else
+                        {
+                            tse.ProjectId__c = ((trArray[i].getElementsByTagName('td')[1]).getElementsByTagName('input')[1]).value
+                        }
+                        //Module Save
+                        var modInput = (trArray[i].getElementsByTagName('td')[2]).getElementsByTagName('select')[0];
+                        modInput.parentNode.className =  'noErrorClass';                         
+                        if(modInput.length > 1)
+                        {
+                            if(modInput.value == null || modInput.value == '')
+                            {
+                                hasErrors = true;
+                                modInput.parentNode.className =  'errorClass';
+                            }
+                            else
+                            {                                                           
+                                tse.Project_Module__c = modInput.value;                              
+                            }
+                        }
+                        //
+                        var milestoneInput = (trArray[i].getElementsByTagName('td')[3]).getElementsByTagName('select')[0];
+                        milestoneInput.parentNode.className =  'noErrorClass'; 
+                        tse.Project_Milestone__c = milestoneInput.value;
+
+                        var typeInput = (trArray[i].getElementsByTagName('td')[4]).getElementsByTagName('select')[0];
+                        typeInput.parentNode.className =  'noErrorClass'; 
+                        if(typeInput.value == null || typeInput.value == '')
+                        {
+                            hasErrors = true;
+                            typeInput.parentNode.className =  'errorClass';
+                        }
+                        else
+                        {
+                            tse.TaskType__c = typeInput.value;
+                        }
+                        if(parseFloat(hrsInput.value) > 0)
+                        {
+                            arrTse.push(tse);
+                        }
+    
+                    }
+                }
+                if(!hasErrors)
+                {
+                    globalInProcess = true;
+                    var ts = new sforce.SObject("Timesheet__c");
+                    ts.Week_Commencing__c = makeSFDate('{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(weekOf,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}');
+                    ts.Name = '{!weekOf}';
+                    if(goForApproval)
+                    {
+                        ts.Status__c = 'Submitted';
+                    }
+                    else
+                    {
+                        ts.Status__c = 'Work in progress';
+                    }
+                    var arrTs = new Array();
+                    arrTs.push(ts); 
+                    var tsResult = sforce.connection.create(arrTs);
+                    var errMsg = '';
+                    for (var i = 0; i< tsResult.length; i++) 
+                    {
+                        if (tsResult[i].getBoolean("success") == false) 
+                        {
+                            errMsg = tsResult[i].errors.message+"<BR/>";
+                            break;
+                        }
+                    }
+                    if(errMsg != '')
+                    {
+                         document.getElementById('spErrors').innerHTML = "Insert operation failure.Correct following errors<BR/>"+errMsg ;
+                    }
+                    else
+                    {
+                       var timeSheetId = tsResult[0].id;
+                       for(var cnt = 0; cnt < arrTse.length; cnt++)
+                       {
+                           var obj = arrTse[cnt];
+                           obj.Timesheet__c = timeSheetId;
+                           arrTse[cnt] = obj;
+                       }
+                       //Bulk Insert
+                       errMsg = bulkOperation(arrTse, 200, "insert");
+                       /*
+                       var tseResult = sforce.connection.create(arrTse);
+                       for (var i = 0; i< tseResult.length; i++) 
+                       {
+                           if (tseResult[i].getBoolean("success") == false) 
+                           {
+                               errMsg = tseResult[i].errors.message+"<BR/>";
+                               break;
+                           }
+                       }
+                       */
+                       if(errMsg != '')
+                       {
+                           document.getElementById('spErrors').innerHTML = "Insert operation failure.Correct following errors<BR/>"+errMsg ;
+                       }
+                       else
+                       {
+                           if(goForApproval)
+                           {
+                               var request = new sforce.ProcessSubmitRequest();
+                               request.objectId = timeSheetId;
+                               request.comments = "automated approval";
+                               var processRes = sforce.connection.process([request]);
+                               for (var i = 0; i< processRes.length; i++) 
+                               {
+                                   if (processRes[i].getBoolean("success") == false) 
+                                   {
+                                       errMsg = processRes[i].errors.message+"<BR/>";
+                                       break;
+                                   }
+                               }
+                               if(errMsg !='')
+                               {
+                                   alert("Error in approval request\n"+errMsg );
+                               }
+                               goBack();
+                           }
+                           else
+                           {
+                                goBack();
+                           }                          
+                       }                                              
+                    }                    
+                }
+            }
+            catch(err)
+            {
+                document.getElementById('spErrors').innerHTML = "Insert operation failure.Correct following errors<BR/>"+err;
+            }
+
+            return false;
+        }
+        
+        //Changes made on 22nd Jan 2009.
+        
+        function bulkOperation(MainArray, limitNo , Operation)  
+        {
+            var Result;
+            var errMsg='';
+            if(MainArray.length != 0 && MainArray != null)
+            {
+                if(MainArray.length > limitNo)
+                {
+                    subMainArray = MainArray;
+                    var MainArraySlice = subMainArray.slice(0, limitNo);
+                    var remainingArray = subMainArray.slice(MainArraySlice.length, subMainArray.length);
+                    while(MainArraySlice.length > 0)
+                    {
+                        if(Operation == "insert")
+                        {
+                            Result = sforce.connection.create(MainArraySlice);
+                        }
+                        else if (Operation == "update")
+                        {
+                            Result = sforce.connection.update(MainArraySlice);
+                        }
+                        else if (Operation == "delete")
+                        {
+                            Result = sforce.connection.deleteIds(MainArraySlice);
+                        }
+                        for(var i = 0; i< Result.length; i++) 
+                        {
+                            if (Result[i].getBoolean("success") == false) 
+                            {
+                                errMsg = Result[i].errors.message+"<BR/>";
+                                break;
+                            }
+                        }
+                        if(remainingArray.length >= limitNo)
+                        {
+                            MainArraySlice = remainingArray.slice(0, limitNo);
+                            remainingArray = subMainArray.slice(MainArraySlice.length*counter, subMainArray.length)
+                        }
+                        else
+                        {
+                            MainArraySlice = remainingArray.slice(0, remainingArray.length);
+                            remainingArray = new Array();
+                        }           
+                    }
+                }
+                else
+                {
+                    if(Operation == "insert")
+                    {
+                        Result = sforce.connection.create(MainArray);
+                    }
+                    else if (Operation == "update")
+                    {
+                        Result = sforce.connection.update(MainArray);
+                    }
+                    else if (Operation == "delete")
+                    {
+                        Result = sforce.connection.deleteIds(MainArray);
+                    }
+                    for(var i = 0; i < Result.length; i++) 
+                    {
+                        if(Result[i].getBoolean("success") == false) 
+                        {
+                            errMsg = Result[i].errors.message+"<BR/>";
+                            break;
+                        }
+                    }
+                }
+            }
+            return errMsg;
+        }
+
+        //Changes made on 22nd Jan 2009.
+        
+        function makeSFDate(myDtStr)
+        {
+            var strArr = myDtStr.split('/');
+            var mm = padZero(strArr[0]);
+            var dd = padZero(strArr[1]);
+            var yyyy = strArr[2];
+            
+            return  yyyy+"-"+mm+"-"+dd+""; 
+            
+        }
+        function padZero(dtPart)
+        {
+            if(dtPart.length == 1)
+            {
+                dtPart = '0'+ dtPart;
+            }
+            return dtPart;
+        }
+        function wrapSpace(val)
+        {
+            if(val =='' || val == null)
+            {
+                return ' ';
+            }
+            else
+            {
+                return val;
+            }
+        }
+        
+        // Changed 
+        function isInProcess()
+        {
+            if(globalInProcess)
+            {
+                alert("Operation In Process.");
+                return true;
+            }
+            return false;
+        }
+        function initiateGoBack()
+        {           
+            if(isInProcess())
+            {
+                return false;
+            }
+            goBack();
+        }
+        // Changed 
+        
+        
+        function goBack()
+        {
+             var urlTo = "../apex/myTimeSheets?from="+'{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(startDateString,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}'+"&to="+'{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(endDateString,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+
+            window.parent.frames.location.href = urlTo ; 
+
+            return false;
+        }
+
+        
+
+    </script>
+    <script>
+        function calculateSum()
+        {
+            var trArray = document.getElementById('tblCon').getElementsByTagName('tr');
+            var total = 0.0;
+            if(trArray.length < 2)
+            {
+                document.getElementById('spTotal').innerHTML = "Total Hours: "+total; 
+                return;
+            } 
+            for(var i = 1;  i < trArray.length; i++)
+            {
+                var tdArr = trArray[i].getElementsByTagName('td');
+                for(var j = 5; j < 12; j++)
+                {
+                    var hrsInput = tdArr[j].getElementsByTagName('input')[0];
+                    if(/^-?\d+(\.\d+)?$/.test(hrsInput.value) == false)
+                    {
+                         //hrsInput.value = 0;
+                         continue;
+                    }
+                    total += parseFloat(hrsInput.value);
+                }               
+            }
+            var roundedTotal = Math.round(total*100)/100;
+            total = roundedTotal.toFixed(2);
+            document.getElementById('spTotal').innerHTML = "Total Hours: "+total;             
+        }
+    </script>
+    
+    <apex:sectionHeader title="Add Timesheet Items" subTitle=" Week of {!weekOf}"/>
+    <apex:form >
+        <span id="spErrors" style="color: red; font-weight: bold"></span>
+
+        <apex:pageBlock title="Add Timesheet items" mode="edit" >
+            <apex:PageBlockButtons >                
+                <apex:commandButton value="Save" onClick="javascript: return validateData(false)"/>
+                <apex:commandButton value="Save & Submit" onClick="javascript: return validateData(true)"/>
+                <apex:commandButton value="<<Back" onClick="javascript: return goBack()"/>
+            </apex:PageBlockButtons>
+            <span style="color: green; font-weight: bold" id="spTotal">Total Hours: 0.0</span>
+            <span id="spTable">
+                <table id="tblCon" width="100%">
+                    <tbody id="tblBody">        
+                        <tr > 
+                            <td></td>
+                            <td style="font-weight: bold">Project</td>
+                            <td style="font-weight: bold;display:none;">Task Group</td>
+                            <td style="font-weight: bold;">Milestone</td>
+                            <td style="font-weight: bold">Task Type</td>
+                            <td align="center" style="font-weight: bold"><span id='day1'></span><br/><span id='date1'></span></td>
+                            <td align="center" style="font-weight: bold"><span id='day2'></span><br/><span id='date2'></span></td>
+                            <td align="center" style="font-weight: bold"><span id='day3'></span><br/><span id='date3'></span></td>
+                            <td align="center" style="font-weight: bold"><span id='day4'></span><br/><span id='date4'></span></td>
+                            <td align="center" style="font-weight: bold"><span id='day5'></span><br/><span id='date5'></span></td>
+                            <td align="center" style="font-weight: bold"><span id='day6'></span><br/><span id='date6'></span></td>
+                            <td align="center" style="font-weight: bold"><span id='day7'></span><br/><span id='date7'></span></td>
+                            
+                         </tr>
+                         <tr>
+                             <td ><apex:commandButton title="Click here to remove this row" value=" X " onclick="javascript:return removeCurrentRow(this)"/></td>
+                             <td  >
+                                 <input type='text' disabled="true" style="width:275px;"/>
+                                 <input type="hidden"/>
+                                 <a href ="" onClick="javascript:return openProjectPopup(this.parentNode)"><img src="/s.gif" alt="Project Lookup (New Window)" class="lookupIcon" onblur="this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';" title="Project Lookup (New Window)" /></a>&nbsp;&nbsp;
+                             </td>
+                             <td style="display:none;">
+                                <select style="width: 150px;">
+                                    <option value=''>----- Select -----</option>                                    
+                                </select> 
+                             </td>
+                              <td>
+                                <select style="width: 250px;">
+                                    <option value=''>----- Select Milestone -----</option>                                    
+                                </select> 
+                             </td>
+                             <td>
+                                <apex:selectList size="1" style="width: 150px;">
+                                    <apex:selectOptions value="{!TaskTypes}"/>
+                                </apex:selectList>
+                              </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"   onBlur="javascript: calculateSum();" value="0"/>
+                               <span name='spDes'  title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/>  
+                             </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"   onBlur="javascript: calculateSum();" value="0"/>
+                               <span name='spDes' title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/>  
+                             </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"   onBlur="javascript: calculateSum();" value="0"/>
+                               <span name='spDes'  title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/> 
+                             </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"   onBlur="javascript: calculateSum();" value="0"/>
+                               <span name='spDes'  title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/>   
+                             </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"  onBlur="javascript: calculateSum();" value="0"/> 
+                               <span name='spDes'  title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/>   
+                             </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"   onBlur="javascript: calculateSum();" value="0"/> 
+                               <span name='spDes'  title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/>  
+                             </td>
+                             <td align="center">
+                               <input type="text" style="width: 30px" maxLength="5"   onBlur="javascript: calculateSum();" value="0"/> 
+                               <span name='spDes'  title="Add Comment" style="font-size: 15px; cursor: pointer" onClick="javascript: showDes(this.parentNode)">•</span>
+                               <textarea style="display:none; position: absolute;width: 200px; height:80px; align:left" onBlur="hideDes(this.parentNode)"/> 
+                             </td>                             
+                         </tr>
+                    </tbody>
+                </table>
+            </span>
+            <br/>
+             <apex:commandButton value=" + " title="Click here to add new entry" onclick="javascript:return addNewRow()"/>
+    
+        </apex:pageBlock>
+    </apex:form>
+    
+    <script>
+        var dtArray = new Array();
+        var day_names = new Array ( );
+        day_names[day_names.length] = "Sunday";
+        day_names[day_names.length] = "Monday";
+        day_names[day_names.length] = "Tuesday";
+        day_names[day_names.length] = "Wednesday";
+        day_names[day_names.length] = "Thursday";
+        day_names[day_names.length] = "Friday";
+        day_names[day_names.length] = "Saturday";
+        
+        var startDateString = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(weekOf,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+        var startDateArr = startDateString.split('/');
+        var startDt =  parseInt(startDateArr[1]); 
+        var startMonth =  parseInt(startDateArr[0])-1;
+        var startYear =   parseInt(startDateArr[2]);
+        var startDate = new Date(startYear, startMonth, startDt); 
+        var startDay = day_names[startDate.getDay()];
+        document.getElementById('day1').innerHTML = startDay.substring(0,3) ;
+        document.getElementById('date1').innerHTML = startDt;
+        var cuDt = startDate;
+        makeDateStringArray(cuDt);
+        cuDt.setDate(cuDt.getDate()+1);
+        var dt = cuDt.getDate();
+        for(var i = 2; i<8; i++)
+        {
+            var dt = cuDt.getDate();
+            var dy = day_names[cuDt.getDay()];
+            document.getElementById('day'+i).innerHTML = dy.substring(0,3);
+            document.getElementById('date'+i).innerHTML = dt;
+            makeDateStringArray(cuDt);
+            cuDt.setDate(cuDt.getDate()+1);
+        }
+        
+        function makeDateStringArray(thisDt)
+        {
+            var yy = thisDt.getFullYear();
+            var mm = parseInt(thisDt.getMonth())+1;
+            var dd = thisDt.getDate();
+            var str1 = mm+"/"+dd+"/"+yy;
+            dtArray.push(str1); 
+        }
+    </script>
+     <script>
+        var firstRow = document.getElementById('tblCon').getElementsByTagName('tr')[1];
+        var firstRowHTML = firstRow.innerHTML;
+        
+        
+         function higlightSelectEntries()
+         {
+            var arrAllTrs = document.getElementById('tblCon').getElementsByTagName('tr');
+            for(var ct = 1; ct < arrAllTrs.length; ct++)
+            {
+                if(billableIndex != -1)
+                {
+                    ((arrAllTrs[ct].getElementsByTagName('td')[4]).getElementsByTagName('select')[0]).options[billableIndex].className = 'boldOption';
+                }
+                if(nonBillableIndex != -1)
+                {
+                   ((arrAllTrs[ct].getElementsByTagName('td')[4]).getElementsByTagName('select')[0]).options[nonBillableIndex].className  = 'boldOption';
+                }
+            }
+        }
+        
+        var billableIndex = -1;
+        var nonBillableIndex = -1;
+
+        // Make Billable Non Billable options bold
+        firstSelect = ((document.getElementById('tblCon').getElementsByTagName('tr')[1]).getElementsByTagName('td')[4]).getElementsByTagName('select')[0];
+        
+        for(var ct = 0; ct < firstSelect.options.length; ct++)
+        {
+            if(firstSelect.options[ct].value == '')
+            {
+                if(billableIndex == -1)
+                {
+                    billableIndex = ct;
+                }
+                else
+                {
+                    nonBillableIndex = ct;
+                    break;
+                }
+            }
+        }
+        
+        for(var cnt = 0; cnt < 9; cnt++)
+        {
+            addNewRow();
+        }
+   </script>
+   <script>
+        function showDes(col)
+        {
+             var allTextAreas = document.getElementById("tblCon").getElementsByTagName('textarea');
+             for(var i = 0; i < allTextAreas.length; i++)
+             {
+                 allTextAreas[i].style.display = 'none';
+             }
+             col.getElementsByTagName("textarea")[0].style.display = "block";
+             col.getElementsByTagName("textarea")[0].focus();
+            
+        }
+        function hideDes(col)
+        {
+             col.getElementsByTagName("textarea")[0].style.display = "none";
+             markFilledDescriptions();
+        }
+        
+        function markFilledDescriptions()
+        {
+             
+             var allTextAreas = document.getElementById("tblCon").getElementsByTagName('textarea');
+             for(var i = 0; i < allTextAreas.length; i++)
+             {
+                 if(allTextAreas[i].value != '' && allTextAreas[i].value != null && allTextAreas[i].value != ' ')
+                 {
+                     allTextAreas[i].parentNode.getElementsByTagName('span')[0].style.color = 'red';
+                     
+                 }
+                 else
+                 {
+                     allTextAreas[i].parentNode.getElementsByTagName('span')[0].style.color = 'black';
+                     
+                 }
+             }
+       }
+    </script>
+
+</apex:page>

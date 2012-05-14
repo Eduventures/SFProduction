@@ -1,0 +1,223 @@
+<apex:page tabStyle="ProjectMember__c" Controller="BES_clsAddProjectMembersController">
+    <script src="/soap/ajax/13.0/connection.js"></script> 
+    <script src="/soap/ajax/13.0/plsoql.js"></script>
+    <style>
+        .errorClass
+        { 
+            border-color: red;
+            border-thickness: 2px;
+            border-style: solid;
+        }
+        .noErrorClass
+        {
+            
+        }
+    </style>
+    <script>
+        var sId = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE($Api.Session_ID,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+        var projectId = '{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(projectId,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+    </script>
+     <script>
+        function addNewRow()
+        {
+          try
+          {
+              var allInputs = document.getElementById('tblCon').getElementsByTagName('input');
+              var allSelects = document.getElementById('tblCon').getElementsByTagName('select');
+              var arrSelIndex = new Array();
+              for(var cnt = 0; cnt< allSelects.length; cnt++)
+              {
+                  arrSelIndex.push(allSelects[cnt].selectedIndex); 
+              }
+              for(var cnt = 0; cnt< allInputs.length; cnt++)
+              {
+                  if(allInputs[cnt].type =="text" ||  allInputs[cnt].type =="hidden");
+                  {
+                     allInputs[cnt].setAttribute("value", allInputs[cnt].value);
+                  }
+              }
+              
+              var strNew = document.getElementById('tblBody').innerHTML + "<TR>"+firstRowHTML+"</TR>";
+              strNew = "<table id=\'tblCon\' width=\'50%\'><tbody id=\'tblBody\'>"+strNew+"</tbody></table>";
+              document.getElementById('spTable').innerHTML =  strNew; 
+              
+              allSelects = document.getElementById('tblCon').getElementsByTagName('select');
+              for(var cnt = 0; cnt < arrSelIndex.length; cnt++)
+              {
+                  allSelects[cnt].selectedIndex = arrSelIndex[cnt];
+              }    
+          }
+          catch(err)
+          {
+              alert(err.message);
+          }
+          return false;
+        }
+        function removeCurrentRow(r)
+        {
+            var ind = r.parentNode.parentNode.rowIndex;
+            document.getElementById('tblCon').deleteRow(ind);
+            return false;
+        }
+        function resetTable()
+        {
+            try
+            {
+            var rowCount = document.getElementById('tblCon').getElementsByTagName('tr').length;
+            if(rowCount>1)
+            {
+                for(var i = 1; i < rowCount; i++) 
+                {
+                    document.getElementById('tblCon').deleteRow(1);
+                }
+            }
+            addNewRow();
+            }
+            catch(err)
+            {
+                alert(err.message);
+            }
+            return false;
+        }
+    </script>
+    <script>
+        var currConColumn;
+        function openUserPopup(obj)
+        {
+            currConColumn = obj;
+            var url  = "selectProjectMembers?id="+'{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(projectId,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}';
+            openWind(url);
+        }
+        function setSelectedUserDetails(userId, userName)
+        {
+            var inputArr = currConColumn.getElementsByTagName('input');
+            var trArray = document.getElementById('tblCon').getElementsByTagName('tr');
+            inputArr[0].value =  userName;
+            inputArr[1].value =  userId;
+            curPopupWindow.close();
+            currConColumn = null;    
+        }
+        var curPopupWindow;  
+        function openWind(URL)
+        {
+            curPopupWindow  = window.open(URL, "_blank","width=500, height=500,dependent=no,resizable=yes,toolbar=no,status=no,directories=no,menubar=no,scrollbars=1", true);
+        }
+        function isDuplicate(userId)
+        {
+            var trArray = document.getElementById('tblCon').getElementsByTagName('tr');
+            for(var i = 1; i < trArray.length; i++)
+            {
+                var userIdVal = ((trArray[i].getElementsByTagName('td')[1]).getElementsByTagName('input')[1]).value;
+                if(userIdVal == userId)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    </script>
+    <script>
+        function validateData()
+        {
+            try
+            {
+                sforce.connection.sessionId = sId;
+                var hasErrors = false;
+                var trArray = document.getElementById('tblCon').getElementsByTagName('tr');
+                if(trArray.length < 2 )
+                {
+                    return false;
+                }
+                document.getElementById('spErrors').innerHTML = '';
+                var projMemberArray = new Array();
+                for(var i = 1; i < trArray.length; i++ )
+                {
+                    var projMember = new sforce.SObject("ProjectMember__c");
+                    var userIdInput = ((trArray[i].getElementsByTagName('td')[1]).getElementsByTagName('input')[1]);
+                    var userId =  userIdInput.value;
+                    var userNameInput = ((trArray[i].getElementsByTagName('td')[1]).getElementsByTagName('input')[0]);
+                    userNameInput.className = 'noErrorClass';
+                    if(userId == '' || userId == null)
+                    {
+                        hasErrors = true;
+                        userNameInput.className = 'errorClass'; 
+                    }
+                    else
+                    {
+                        projMember.Name = userNameInput.value; 
+                        projMember.ProjectId__c = projectId;
+                        projMember.UserId__c = userId;
+                        projMemberArray.push(projMember); 
+                    } 
+                }
+                if(!hasErrors)
+                {
+                    var result = sforce.connection.create(projMemberArray);
+                    var errMsg = '';
+                    for (var i = 0; i < result.length; i++) 
+                    {
+                        if (result[i].getBoolean("success") == false) 
+                        {
+                            errMsg = result[i].errors.message+"<BR/>";
+                            break;
+                        }
+                    }
+                    if(errMsg != '')
+                    {
+                         document.getElementById('spErrors').innerHTML = "Insert operation failure.Correct following errors<BR/>"+errMsg ;
+                    }
+                    else
+                    {
+                        goBack();
+                    }
+                }
+            }
+          catch(err)
+            {
+                document.getElementById('spErrors').innerHTML = "Insert operation failure.Correct following errors<BR/>"+err;
+            }
+
+            return false;
+        }
+        function goBack()
+        {
+            var urlTo = "../"+'{!SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(projectId,'&','&amp;'),'\'','&rsquo;'),'"','&quot;'),'<','&lt;'),'>','&gt;')}'; 
+            window.parent.frames.location.href = urlTo ; 
+            return false;
+        }
+    </script>
+    <apex:sectionHeader title="Add Project Members" subTitle="Add project members to {!projectRec.Name}"/>
+    <apex:form >
+        <span id="spErrors" style="color: red; font-weight: bold"></span>   
+        <apex:pageBlock title="Select Members" mode="edit" >
+            <apex:PageBlockButtons >
+                <apex:commandButton value="Add" onClick="javascript: return validateData()"/>
+                <apex:commandButton value="Cancel" onClick="javascript: return goBack()"/>
+           </apex:PageBlockButtons>
+           
+           <span id="spTable">
+               <table id="tblCon" width="50%">
+                   <tbody id="tblBody">        
+                       <tr> 
+                           <td></td>
+                           <td style="font-weight: bold">Project Member</td>
+                       </tr>
+                       <tr>
+                           <td><apex:commandButton title="Click here to remove this row" value=" X " onclick="javascript:return removeCurrentRow(this)"/></td>
+                           <td>
+                               <input type='text' disabled="true"/>
+                               <input type="hidden"/>
+                               <a href ="" onClick="javascript:return openUserPopup(this.parentNode)"><img src="/s.gif" alt="Users Lookup (New Window)" class="lookupIcon" onblur="this.className = 'lookupIcon';" onfocus="this.className = 'lookupIconOn';" onmouseout="this.className = 'lookupIcon';this.className = 'lookupIcon';" onmouseover="this.className = 'lookupIconOn';this.className = 'lookupIconOn';" title="User Lookup (New Window)" /></a>&nbsp;&nbsp;
+                           </td>
+                       </tr>
+                   </tbody>
+                </table>
+            </span>
+            <br/>
+            <apex:commandButton value=" + " title="Click here to add new entry" onclick="javascript:return addNewRow()"/>    
+        </apex:pageBlock>
+    </apex:form>
+    <script>
+        var firstRowHTML = (document.getElementById('tblCon').getElementsByTagName('tr')[1]).innerHTML;
+    </script> 
+</apex:page>

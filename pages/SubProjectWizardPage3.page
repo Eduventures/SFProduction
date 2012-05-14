@@ -1,0 +1,43 @@
+<apex:page controller="SubProjectWizardController" tabStyle="Projects__c" >
+    <apex:form >
+      <apex:pageBlock title="Subprojects created for {!$User.FirstName} {!$User.LastName}">
+        <apex:pageBlockButtons >
+            <apex:commandButton action="{!finish}" value="Finished (back to Master Project)"/>
+        </apex:pageBlockButtons>
+        <apex:dataTable value="{!newSubProjects}" var="aProject" width="100%" >
+            <apex:column >
+                <apex:facet name="header"><b>New subproject name</b></apex:facet>
+                {!aProject.Name}
+            </apex:column>
+
+            <apex:column >            
+            <apex:facet name="header"><b>New subproject ID</b></apex:facet>
+                {!aProject.id}
+            </apex:column>         
+            <!---<apex:column >
+                <apex:facet name="header"><b>New subproject ID</b></apex:facet>
+                <apex:commandLink action="viewDetail({!aProject.id})" value="{!aProject.id}" rerender="resultPanel">
+                    <apex:param name="projectid" value=""/>
+                </apex:commandLink>
+            </apex:column>                 
+
+            <!---<apex:column >
+                <apex:facet name="header"><b>Account Name</b></apex:facet>
+                {!aProject.Account__r.Name}
+            </apex:column>    
+            
+            <apex:column >
+                <apex:facet name="header"><b>Account Name</b></apex:facet>
+                {!aProject.LOA__c.Name}
+            </apex:column> --->              
+        </apex:dataTable>
+        <!---<apex:pageBlockSection columns="1" title="View project data (click on a project ID above)">
+            <apex:outputPanel id="resultPanel" layout="block">
+            <apex:detail subject="{!selectedProject}" relatedList="false">
+                <apex:facet name="header"></apex:facet><apex:facet name="footer"></apex:facet>
+            </apex:detail>
+            </apex:outputPanel>
+        </apex:pageBlockSection>--->
+     </apex:pageBlock>
+</apex:form>    
+</apex:page>

@@ -1,0 +1,135 @@
+<apex:page standardController="Projects__c" tabStyle="Projects__c" extensions="ProjectPMViewController">
+    <style>
+    .activeTab {background-color: #E56363; color:white; background-image:none}
+    .inactiveTab { background-color: lightgrey; color:black; background-image:none}
+    
+    </style>
+
+    <apex:tabPanel switchType="client" selectedTab="milestones" id="theTabPanel">
+        <apex:tab label="Manage Project Milestones" name="milestones" id="tabOne">
+            <apex:form >
+                        
+            <apex:pageBlock id="projectInfo">
+            <apex:pageBlockSection >
+                <apex:outputField value="{!proj.Name}"/><apex:outputField value="{!proj.Account__c}"/>
+                <apex:outputField value="{!proj.Stage__c}"/><apex:outputField value="{!proj.Complete_by_hours__c}"/>
+                <apex:outputField value="{!proj.Estimated_End_Date__c}"/><apex:outputField value="{!proj.End_Date__c}"/>
+                <apex:outputField value="{!proj.Estimated_Hours__c}"/><apex:outputField value="{!proj.Milestone_Hours__c}"/>
+                <apex:outputField value="{!proj.Total_Hours_Calc__c}"/><apex:outputField value="{!proj.Billable_Hours__c}"/>
+                <apex:outputField value="{!proj.Variance__c}"/>
+            </apex:pageBlockSection>
+            </apex:pageBlock>
+            
+            <apex:pageBlock >
+            <apex:outputPanel id="msgPanel">
+                <apex:pageMessages />
+                <apex:pageMessage id="msg" escape="false" detail="{!messageDisplay}" severity="info" rendered="{!messageDisplay != ''}"></apex:pageMessage>
+            </apex:outputPanel>
+            <apex:actionRegion >
+            <apex:outputPanel id="milestonelist">
+                <div align="center">
+                <apex:commandButton value="Edit All Milestones" disabled="{!editMode}" rerender="msgPanel,milestonelist" action="{!editAll}" />
+                <apex:commandButton value="Save" disabled="{! !editMode}" rerender="msgPanel,milestonelist" action="{!saveEdits}" />
+                <apex:commandButton value="Cancel" disabled="{! !editMode && !linkMode}" rerender="msgPanel,milestonelist" action="{!cancelEdits}" />
+                </div>
+                <table width="100%" class="list" style="padding-bottom:20px">
+                    <tr class="headerRow">
+                        <th> </th>
+                        <th><b>Previous Milestone</b></th>
+                        <th><b>Milestone</b></th>
+                        <th><b>Assigned To</b></th>
+                        <th><b>Start</b></th>
+                        <th><b>End</b></th>
+                        <th><b>Budgeted Milestone Hours</b></th>
+                        <th><b>Booked Milestone Hours</b></th>
+                        <th><b>Status</b></th>
+                    </tr>
+                    <apex:outputPanel rendered="{!milestones.size == 0}">
+                        <tr style="border-bottom:1px solid #D4DADC;"><td colspan="8">There are no milestones for this project, please enter some below</td></tr>
+                    </apex:outputPanel>      
+                    <apex:repeat value="{!milestones}" var="milestone">
+                    <apex:outputPanel layout="none" rendered="{! !milestone.editing}">
+                    
+                    <tr style="{!if(selected == milestone.pm.Id ,'font-weight:bold;','')}background-color:{!if(editMode, 'inherit', if(milestone.pm.Status__c == 'Complete','#99FF66' , if(milestone.pm.Status__c == 'In Progress', '#FFFF99' ,'#FFFFFF')))};border-bottom:1px solid #D4DADC;" >
+                        <td class="dataCell">
+                            <apex:commandButton disabled="{!editMode}" value="Edit" id="eButton" rerender="msgPanel,milestonelist" action="{!editMilestone}">
+                                <apex:param name="mid" value="{!milestone.pm.Id}"/>
+                                <apex:param name="selected" value="{!milestone.pm.Id}"/>
+                            </apex:commandButton>
+                        </td>
+                        <td class="dataCell">
+                            <apex:commandLink title="Click to edit" action="{!editPreceeding}" rendered="{! !linkMode && !editMode}" rerender="msgPanel,milestonelist" > 
+                                <apex:outputText value="{! if(milestone.pm.Preceeding_Milestone__c != null, milestone.pm.Preceeding_Milestone__r.name, '(none)')}" />
+                                <apex:param name="editPreceedingId" value="{!milestone.pm.Id}" />
+                            </apex:commandLink>
+                            <apex:outputText rendered="{! linkMode && editingId == milestone.pm.Id}"><b>Click on a milestone name >></b></apex:outputText>
+                            <apex:outputText rendered="{! editMode || (linkMode && editingId != milestone.pm.Id)}" value=" {!milestone.pm.Preceeding_Milestone__r.Name}" />         
+                        </td>                           
+                        <td class="dataCell">
+                            <apex:outputText rendered="{! !linkMode || milestone.pm.Id == editingId || milestone.pm.Start__c > preceedingMaxDate}" value="{!milestone.pm.Name}"/>
+                            <apex:commandButton rendered="{! linkMode && milestone.pm.Id != editingId && milestone.pm.Start__c <= preceedingMaxDate}" value="{!milestone.pm.Name}" rerender="msgPanel,milestonelist" action="{!linkPreceeding}">
+                                <apex:param name="preceedingId" value="{!milestone.pm.Id}" />
+                            </apex:commandButton>
+                        </td>
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.Assigned_To__c}"/></td>                  
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.Start__c}"/></td>
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.End__c}"/></td>
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.Estimated_Hours__c}"/></td>
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.Booked_Hours__c}"/></td>
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.Status__c}"/></td>
+                    </tr>
+                    </apex:outputPanel>
+                    <apex:outputPanel layout="none" rendered="{!milestone.editing}">
+                    <tr style="border-bottom:1px solid #D4DADC;" >  
+                        <td class="dataCell" style="font-weight:bold;color:red;">
+                            <apex:commandButton rendered="{! !(selected == milestone.pm.Id)}" disabled="{!editMode}" value="Edit" rerender="msgPanel,milestonelist" action="{!editMilestone}">
+                                <apex:param name="mid" value="{!milestone.pm.Id}"/>
+                                <apex:param name="selected" value="{!milestone.pm.Id}"/>
+                            </apex:commandButton>
+                            <apex:outputText rendered="{! selected == milestone.pm.Id}">&raquo; Editing &raquo;</apex:outputText>
+                        </td>
+                        <td class="dataCell"><apex:outputField value="{!milestone.pm.Preceeding_Milestone__c}"/></td>                               
+                        <td class="dataCell"><apex:inputField value="{!milestone.pm.Name}"/></td>
+                        <td class="dataCell">
+                            <apex:selectList value="{! milestone.pm.Assigned_To__c}" required="true" size="1" >
+                                <apex:selectOptions value="{!Staff}"/>   
+                            </apex:selectList>                         
+                        </td>    
+                        <td class="dataCell"><apex:inputField value="{!milestone.pm.Start__c}"/></td>
+                        <td class="dataCell"><apex:inputField value="{!milestone.pm.End__c}"/></td>
+                        <td class="dataCell"><apex:inputField value="{!milestone.pm.Estimated_Hours__c}"/></td>
+                        <td class="dataCell"><apex:inputField value="{!milestone.pm.Booked_Hours__c}"/></td>
+                        <td class="dataCell"><apex:inputField value="{!milestone.pm.Status__c}"/></td>
+                    </tr>
+                    </apex:outputPanel>                
+                    </apex:repeat>
+                </table>
+            </apex:outputPanel>
+            </apex:actionRegion>  
+            
+            <apex:actionRegion >
+            <apex:pageBlockSection collapsible="false" id="newMilestoneForm" title="Add a New Milestone">
+                <apex:inputField value="{!newMilestone.Name}"/> 
+                <apex:pageBlockSectionItem >Assign To: 
+                    <apex:selectList value="{!newMilestone.Assigned_To__c}" required="true" size="1" >
+                        <apex:selectOptions value="{!Staff}"/>   
+                    </apex:selectList>                    
+                </apex:pageBlockSectionItem>     
+                <apex:inputField value="{!newMilestone.Start__c}"/><apex:inputField value="{!newMilestone.End__c}"/>
+                <apex:inputField value="{!newMilestone.Estimated_Hours__c}"/><apex:inputField value="{!newMilestone.Status__c}"/>
+                <apex:outputLabel for="recurringcountinput" value="Number of Occurances (leave '1' if this milestone should not recur weekly)" />
+                <apex:inputText value="{!occuranceCount}" id="recurringcountinput" /> 
+                <apex:commandButton value="Create This Milestone" rerender="msgPanel,newMilestoneForm,milestonelist" action="{!saveNew}" />
+            </apex:pageBlockSection>
+            </apex:actionRegion>
+            </apex:pageBlock>       
+        
+            </apex:form>
+
+        </apex:tab>
+        
+        <apex:tab label="Project Details (Standard View)" name="details" id="tabTwo">
+            <apex:detail relatedList="true"  title="true" />
+        </apex:tab>
+    </apex:tabPanel>
+</apex:page>

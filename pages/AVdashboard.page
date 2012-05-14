@@ -1,0 +1,706 @@
+<apex:page controller="AVdashboardController" >
+
+<style type="text/css">
+.dollars {
+        width: 75px !important; 
+}
+
+.percent {
+        width: 45px !important;;
+}
+
+table.custom {
+        border-width: 1px;
+        border-spacing: 0px;
+        border-style: solid;
+        border-color: black;
+        border-collapse: separate;
+        background-color: white;
+}
+table.custom th {
+        border-width: 1px;
+        padding: 1px;
+        border-style: inset;
+        border-color: gray;
+        background-color: white;
+        -moz-border-radius: ;
+}
+table.custom td {
+        border-width: 1px;
+        padding: 1px;
+        border-style: inset;
+        border-color: gray;
+        background-color: white;
+        -moz-border-radius: ;
+}
+
+.subtotalHighlight1 {
+    background-color:yellow !important;
+    border-style: solid;
+}
+
+.subtotalHighlight2 {
+    background-color:lightgray !important;
+    border-width: 5px;
+    border-style: solid;
+}
+
+.subtotalHighlight3 {
+    background-color:lightblue !important;
+}
+</style>
+<apex:includeScript id="jqbase" value="{!URLFOR($Resource.jqueryui, '/js/jquery-1.4.2.min.js')}"/>
+<apex:includeScript id="jquijs" value="{!URLFOR($Resource.jqueryui, '/js/jquery-ui-1.8.2.custom.min.js')}"/>
+<apex:stylesheet id="jquicss" value="{!URLFOR($Resource.jqueryui, '/css/smoothness/jquery-ui-1.8.2.custom.css')}"/>
+<script type="text/javascript">
+    function toggleDisplay(sectionName){
+        var row =  document.getElementById(sectionName);
+        if (row.style.display == ''){ row.style.display = 'none';}
+        else {row.style.display = '';}      
+    }
+
+    function showMe(divID) 
+    {
+            $("[id='"+divID+"']").dialog('open');    
+    }
+   
+    function hideMe(divID) 
+    {
+        $("[id='"+divID+"']").dialog('close');    
+    } 
+    
+    $(document).ready( function(){
+    
+        $(".popupWindow").dialog(
+        {
+            modal:true,
+            autoOpen: false,
+            closeable: true,
+            resizable: true,
+            width: 'auto',
+            height: 'auto',
+            overlay: {opacity: 0.5, background: "black" }
+        
+        });
+
+        $("[name='selectedDivision']").click(
+        	function() {
+  				if(this.value == 'All')
+  				{
+  					$("[name='selectedProgram'][id='All']").attr( 'checked', 'checked' );    				
+  					$("#programfilter").hide();
+  					$("#programfilteroff").show();	
+  				} else if (this.value == 'LC')
+  				{
+  					$("#programfilteroff").hide();	
+  					$("#programfilter").show();
+  					//$("[name='selectedProgram'][id='All']").attr( 'checked', 'checked' );   			
+  					$("[name='selectedProgram']").each(function(index) {
+   						if( $.inArray(this.id, ['ECS','RPT','Sponsorship']) > -1)
+   						{
+   							$(this).parent().hide();
+   						} else 
+   						{
+   							$(this).parent().show();
+   						}
+					});
+  						  					
+  				}  else if (this.value == 'ECS')
+  				{
+  					$("[name='selectedProgram'][id='ECS']").attr( 'checked', 'checked' );     	
+  					$("#programfilter").hide();
+  					$("#programfilteroff").show();				
+  				} else 
+  				{
+  					$("#programfilter").show();
+  					$("#programfilteroff").hide();	
+  					//$("[name='selectedProgram'][id='All']").attr( 'checked', 'checked' );   		
+  					$("[name='selectedProgram']").each(function(index) {
+   						if( $.inArray(this.id, ['All','RPT','Sponsorship']) == -1)
+   						{
+   							$(this).parent().hide();
+   						} else 
+   						{
+   							$(this).parent().show();
+   						}
+					});
+  				}
+		});
+		
+        $("[name='selectedDivision']:checked").click();
+    });    
+</script>
+<apex:pageBlock title="Annualized Value Dashboard" >
+<form action="/apex/AVdashboard" method="get">
+  <table width="600px;" >
+  <th>Report Filters</th>
+    <tr>
+        <td><b>1) Choose a Division to filter by:</b>
+                
+                <apex:repeat value="{!availableDivisions}" var="div" >
+	                <apex:outputPanel rendered="{! div == selectedDivision}">
+	                	<label><input type="radio" name="selectedDivision" value="{!div}" checked="checked" id="{!div}" />{!div}</label>
+	                </apex:outputPanel>
+	                <apex:outputPanel rendered="{! div != selectedDivision}">
+	                	<label><input type="radio" name="selectedDivision" value="{!div}" id="{!div}" />{!div}</label>
+	                </apex:outputPanel>                       
+                </apex:repeat>
+        </td>
+    </tr>
+    <tr>    
+        <td><b>2) Choose a Program:</b>
+        		<span id="programfilteroff">[disabled - choose 'LC' or 'Other' ]</span>
+                <span id="programfilter">
+                <apex:repeat value="{!availablePrograms}" var="pg" >
+                	<apex:outputPanel rendered="{! pg == selectedProgram}">
+                        <label><input type="radio" name="selectedProgram" value="{!pg}" checked="checked" id="{!pg}" />{!pg}</label>
+                    </apex:outputPanel>
+                	<apex:outputPanel rendered="{! pg != selectedProgram}">
+                        <label><input type="radio" name="selectedProgram" value="{!pg}" id="{!pg}" />{!pg}</label>
+                    </apex:outputPanel>     
+                </apex:repeat>
+                </span>
+        </td>  
+    </tr>
+    <tr>    
+        <td>Optional: Select a year for Comparison   
+          <select name="compyear" id="compyear">
+          <apex:repeat value="{!availableYears}" var="year" >
+          	<apex:outputPanel rendered="{! year == comparisonyear}">
+                <option value="{!year}" id="{!year}" selected="selected">{!if(comparisonyear == displayYear,'None', TEXT(year))}</option>
+          	</apex:outputPanel>
+          	<apex:outputPanel rendered="{! year != comparisonyear}">
+                <option value="{!year}" id="{!year}" >{!year}</option>
+          	</apex:outputPanel>
+          </apex:repeat>  
+          </select>
+        </td>
+    </tr> 
+    <tr>    
+        <td><label>
+        <div align="center">
+          <input type="submit" name="submit" id="submit" value="Run Report" />
+          </div>
+        </label></td>
+    </tr>   
+  </table>
+  	<div style="display:none;" >
+	<table><th>DEBUG INFO</th>
+	<tr><td>selectedDivision = {!selectedDivision}</td></tr>
+	<tr><td>selectedProgram = {!selectedProgram}</td></tr>
+	<tr><td>programFilter = {!programFilter}</td></tr>
+	<tr><td>comparisonyear = {!comparisonyear}</td></tr>
+	<tr><td>possibleYears = {!possibleYears}</td></tr>
+	</table>
+	</div>	
+</form>     
+</apex:pageBlock>
+<apex:outputPanel id="reportresults" >
+<apex:repeat value="{!reportyears}" var="reportYear">
+    <apex:pageBlock title="{!reportYear.Name}" >
+
+        <table class="custom">
+            <th> </th>
+            <th>LC</th>
+            <th>{!reportYear.ecsyear.Name}</th>
+            <th>{!reportYear.otheryear.Name}</th>
+            <th>Company Totals</th>           
+            <tr>
+                <td>
+                    <table class="custom">
+                        <th>Quarter</th>
+                        <tr><td>Q1</td></tr>
+                        <tr><td>Q2</td></tr>
+                        <tr><td>Q3</td></tr>
+                        <tr><td>Q4</td></tr>
+                    </table>
+                </td>            
+                <td>
+                    <table class="custom">
+                        <th class="dollars">AV</th>
+                        <th class="dollars">Renewal</th>
+                        <th class="percent">%</th>
+                        <th class="dollars">New Biz</th>
+                        <th class="dollars">LC Actuals</th>
+                        <th class="percent">YoY</th>
+                        <th class="dollars">Plan</th>
+                        <th class="dollars">Diff.</th>
+                        <th>P (+/-)</th>
+                        <th> &nbsp;</th>
+                        <apex:repeat value="{!reportYear.lcyear.quarters}" var="quarter">                        
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.av}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.renewalsales}"/></apex:outputText></td>
+                            <td class="percent">{!quarter.renewalpercent}%</td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.newsales}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalactual}"/></apex:outputText></td>
+                            <td class="percent">{!quarter.yoy}%</td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalplan}"/></apex:outputText></td>
+                            <td class="dollars">
+                            	<apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}LC{!quarter.Name}diffdetail');">
+                                  	<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.difference}"/></apex:outputText>
+                                </apex:outputLink>
+                                <div id="{!reportYear.Name}LC{!quarter.Name}diffdetail" class="popupWindow" style="display: none" >
+									<table>
+										<tr><td>Renewal Sales Difference = </td><td><b><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.renewaldifference}"/></apex:outputText></b></td></tr>
+										<tr><td>New Sales Difference = </td><td><b><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.newdifference}"/></apex:outputText></b></td></tr>
+										<tr><td>Total LC Difference = </td><td><b><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.difference}"/></apex:outputText></b></td></tr>
+									</table>
+                                </div> 
+                            </td>
+                            <td class="percent">{!quarter.pscore}</td>
+                            <td>
+								<apex:outputLink styleClass="hoverlink" rendered="{!quarter.monthsList.size != 0}" value="javascript:showMe('{!reportYear.Name}LC{!quarter.Name}monthdetail');">>></apex:outputLink>
+                                <div id="{!reportYear.Name}LC{!quarter.Name}monthdetail" class="popupWindow" style="display:none;" >
+                                	<table class="custom">
+	                                    <th> &nbsp;</th>
+	                                    <th>AV</th>
+	                                    <th>Renewal</th>
+	                                    <th>Renewal Plan</th>
+	                                    <th>Renewal Diff</th>
+	                                    <th>%</th>
+	                                    <th>New Biz</th>
+	                                    <th>New Plan</th>
+	                                    <th>New Diff</th>
+	                                    <th>LC Actuals</th>
+	                                    <th>YoY</th>
+	                                    <th>Plan</th>
+	                                    <th>Diff.</th>
+	                                    <th>P (+/-)</th>
+	                                    <apex:repeat value="{!quarter.monthsList}" var="month" >  
+	                                    <tr>
+                                        	<td><apex:outputText value="{!month.Name}" /></td>
+                                            <td class="dollars subtotalHighlight1">
+                                            	<apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}LC{!month.Name}avdetail');">
+                                            	<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.av}"/></apex:outputText>
+                                            	</apex:outputLink>
+                                            	<div id="{!reportYear.Name}LC{!month.Name}avdetail" class="popupWindow" style="display: none" >
+                                                    <apex:dataTable value="{!month.avlist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Contract</apex:facet>
+	                                                            <apex:outputField value="{!cy.LOA__c}" />
+	                                                    </apex:column>  
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">End Date</apex:facet>
+	                                                            <apex:outputField value="{!cy.End_Date__c}" />
+	                                                    </apex:column>   
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Amount</apex:facet>
+	                                                            <apex:outputField value="{!cy.AV__c}" />
+	                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                            	</div>
+                                            </td>
+				                            <td class="dollars subtotalHighlight1">
+                                            	<apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}LC{!month.Name}renewaldetail');">
+                                            	<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewalsales}"/></apex:outputText>
+                                            	</apex:outputLink>
+                                            	<div id="{!reportYear.Name}LC{!month.Name}renewaldetail" class="popupWindow" style="display: none" >
+                                                    <br /><br /><span style="background-color:#CDE8F0;font-weight:bold;">Renewal Sales</span><br />
+                                                    <apex:dataTable value="{!month.renewalsaleslist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Contract</apex:facet>
+	                                                            <apex:outputField value="{!cy.LOA__c}" />
+	                                                    </apex:column>  
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Recognition Date</apex:facet>
+	                                                            <apex:outputField value="{!cy.Recognition_Date__c}" />
+	                                                    </apex:column> 
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Amount</apex:facet>
+	                                                            <apex:outputField value="{!cy.AV__c}" />
+	                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                                    <hr />
+                                                    <br /><span style="background-color:#CDE8F0;font-weight:bold;float:right;">
+                                                    Renewal Plan = 
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewalplan}"/></apex:outputText><br /> 
+                                                    total = 
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewalsales}"/></apex:outputText><br /><hr />
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewaldifference}"/></apex:outputText>
+                                                    </span>
+                                            	</div>
+                                            </td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewalplan}"/></apex:outputText></td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.renewaldifference}"/></apex:outputText></td>
+				                            <td class="percent subtotalHighlight1">{!month.renewalpercent}%</td>
+				                            <td class="dollars subtotalHighlight1">
+                                            	<apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}LC{!month.Name}newdetail');">
+                                            	<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newsales}"/></apex:outputText>
+                                            	</apex:outputLink>
+                                            	<div id="{!reportYear.Name}LC{!month.Name}newdetail" class="popupWindow" style="display: none" >
+                                                    <br /><br /><span style="background-color:#CDE8F0;font-weight:bold;">New Sales</span><br />
+                                                    <apex:dataTable value="{!month.newsaleslist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Contract</apex:facet>
+	                                                            <apex:outputField value="{!cy.LOA__c}" />
+	                                                    </apex:column>  
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Recognition Date</apex:facet>
+	                                                            <apex:outputField value="{!cy.Recognition_Date__c}" />
+	                                                    </apex:column> 
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Amount</apex:facet>
+	                                                            <apex:outputField value="{!cy.AV__c}" />
+	                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                                    <hr />
+                                                    <br /><span style="background-color:#CDE8F0;font-weight:bold;float:right;">
+                                                    New Plan = 
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newplan}"/></apex:outputText><br /> 
+                                                    total = 
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newsales}"/></apex:outputText><br /><hr />
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newdifference}"/></apex:outputText>	                    
+                                                    </span>
+                                            	</div>
+                                            </td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newplan}"/></apex:outputText></td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.newdifference}"/></apex:outputText></td>
+                                            <td class="dollars subtotalHighlight1">
+                                            	<apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}LC{!month.Name}detail');">
+                                            	<apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalactual}"/></apex:outputText>
+                                            	</apex:outputLink>
+                                                    <div id="{!reportYear.Name}LC{!month.Name}detail" class="popupWindow" style="display: none" >
+                                                    <br /><br /><span style="background-color:#CDE8F0;font-weight:bold;">New Sales</span><br />
+                                                    <apex:dataTable value="{!month.newsaleslist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Contract</apex:facet>
+	                                                            <apex:outputField value="{!cy.LOA__c}" />
+	                                                    </apex:column>  
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Recognition Date</apex:facet>
+	                                                            <apex:outputField value="{!cy.Recognition_Date__c}" />
+	                                                    </apex:column>                                                      
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Amount</apex:facet>
+	                                                            <apex:outputField value="{!cy.AV__c}" />
+	                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                                    <br /><br /><span style="background-color:#CDE8F0;font-weight:bold;">Renewal Sales</span><br />
+                                                    <apex:dataTable value="{!month.renewalsaleslist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Contract</apex:facet>
+	                                                            <apex:outputField value="{!cy.LOA__c}" />
+	                                                    </apex:column>  
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Recognition Date</apex:facet>
+	                                                            <apex:outputField value="{!cy.Recognition_Date__c}" />
+	                                                    </apex:column>                                                       
+	                                                    <apex:column >
+	                                                            <apex:facet name="header">Amount</apex:facet>
+	                                                            <apex:outputField value="{!cy.AV__c}" />
+	                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                                    <hr />
+                                                    <br /><span style="background-color:#CDE8F0;font-weight:bold;float:right;">total = 
+                                                    <apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalactual}"/></apex:outputText>
+                                                    </span><br />                                
+                                                    </div>                                            	
+                                            </td>
+                                            <td class="percent subtotalHighlight1"><apex:outputText value="{!month.yoy}" /></td>                      
+                                            <td class="dollars subtotalHighlight1"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalplan}"/></apex:outputText></td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+											<td class="percent;subtotalHighlight1"><apex:outputText value="{!month.pscore}" /></td>
+										</tr>
+                                        </apex:repeat>
+                                   </table>  
+								</div>    
+                         </td>
+                        </tr>
+                        </apex:repeat>
+                    </table>
+                </td>
+                <td>
+                    <table class="custom">
+                        <th>Sales</th>
+                        <th>Plan</th>
+                        <th>Diff.</th>
+                        <th>P (+/-)</th>
+                        <th> &nbsp;</th>
+                        <apex:repeat value="{!reportYear.ecsyear.quarters}" var="quarter">                        
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalsales}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.difference}"/></apex:outputText></td>
+                            <td class="percent">{!quarter.pscore}</td>
+                            <td>
+                                <apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}ECS{!quarter.Name}monthdetail');">>></apex:outputLink>
+                                <div id="{!reportYear.Name}ECS{!quarter.Name}monthdetail" class="popupWindow" style="display:none;" >
+                                   	<table class="custom">
+                                   		<th> &nbsp;</th>
+                                   		<th>Sales</th>
+                                        <th>Plan</th>
+                                        <th>Difference</th>
+                                        <th>P (+/-)</th>
+                                        <th> &nbsp;</th>
+                                        <apex:repeat value="{!quarter.months}" var="month" >
+                                        <tr>
+                                            <td><apex:outputText value="{!month.Name}" /></td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalsales}"/></apex:outputText></td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.plan}"/></apex:outputText></td>
+                                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+                                            <td class="percent"><apex:outputText value="{!month.pscore}" /></td>
+                                            <td><apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}ECS{!month.Name}detail');">>></apex:outputLink></td>
+                                            <td>
+                                                    <div id="{!reportYear.Name}ECS{!month.Name}detail" class="popupWindow" style="display: none" >
+                                                    <apex:dataTable value="{!month.saleslist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+                                                    <apex:column >
+                                                            <apex:facet name="header">Contract</apex:facet>
+                                                            <apex:outputField value="{!cy.LOA__c}" />
+                                                    </apex:column>  
+                                                    <apex:column >
+                                                            <apex:facet name="header">Recognition Date</apex:facet>
+                                                            <apex:outputField value="{!cy.Recognition_Date__c}" />
+                                                    </apex:column> 
+                                                    <apex:column >
+                                                            <apex:facet name="header">Amount</apex:facet>
+                                                            <apex:outputField value="{!cy.AV__c}" />
+                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                                    </div>
+                                            </td>
+	                                    </tr>
+	                                    </apex:repeat>
+                                	</table>  
+                            	</div>    
+                            </td>
+                        </tr>
+                        </apex:repeat>
+                    </table>
+                </td>
+                <td>
+                    <table class="custom">
+                        <th>Sales</th>
+                        <th>Plan</th>
+                        <th>Diff.</th>
+                        <th>P (+/-)</th>
+                        <th> &nbsp;</th>
+                        <apex:repeat value="{!reportYear.otheryear.quarters}" var="quarter">                        
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.totalsales}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!quarter.difference}"/></apex:outputText></td>
+                            <td class="percent">{!quarter.pscore}</td>
+                            <td>
+                            	<apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}other{!quarter.Name}monthdetail');">>></apex:outputLink>
+                                <div id="{!reportYear.Name}other{!quarter.Name}monthdetail" class="popupWindow" style="display:none;" >
+                                	<table class="custom">
+	                                    <th> &nbsp;</th>
+	                                    <th>Sales</th>
+                                        <th>Plan</th>
+                                        <th>Diff.</th>
+                                        <th>P (+/-)</th>
+                                        <th> &nbsp;</th>
+                                        <apex:repeat value="{!quarter.months}" var="month" >
+	                                        <tr>
+                                                <td><apex:outputText value="{!month.Name}" /></td>
+                                                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalsales}"/></apex:outputText></td>
+                                                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.plan}"/></apex:outputText></td>
+                                                <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+                                                <td class="percent"><apex:outputText value="{!month.pscore}" /></td>
+                                                <td><apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}other{!month.Name}detail');">>></apex:outputLink></td>
+                                                <td>
+                                                    <div id="{!reportYear.Name}other{!month.Name}detail" class="popupWindow" style="display: none" >
+                                                    <apex:dataTable value="{!month.saleslist}" cellpadding="5px;" var="cy" rowClasses="odd,even">
+                                                    <apex:column >
+                                                            <apex:facet name="header">Contract</apex:facet>
+                                                            <apex:outputField value="{!cy.LOA__c}" />
+                                                    </apex:column>  
+                                                    <apex:column >
+                                                            <apex:facet name="header">Recognition Date</apex:facet>
+                                                            <apex:outputField value="{!cy.Recognition_Date__c}" />
+                                                    </apex:column> 
+                                                    <apex:column >
+                                                            <apex:facet name="header">Amount</apex:facet>
+                                                            <apex:outputField value="{!cy.AV__c}" />
+                                                    </apex:column> 
+                                                    </apex:dataTable>
+                                                    </div>
+                                                </td>
+	                                        </tr>
+                                    	</apex:repeat>
+                                  	</table>  
+                                  </div>    
+                            </td>
+                        </tr>
+                        </apex:repeat>
+                    </table>
+                </td>
+                <td>
+                    
+                    <table class="custom">
+                        <th>Total Actuals</th>
+                        <th>Plan</th>  
+                        <th>Diff.</th>
+                        <th>P (+/-)</th>  
+                        <th>&nbsp;</th>      
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q1actuals}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q1plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q1difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.Q1pscore}</td>
+                            <td>
+                                <apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}Q1monthdetail');">>></apex:outputLink>
+                                    <div id="{!reportYear.Name}Q1monthdetail" class="popupWindow" style="display:none;" >
+	                                    <table class="custom">
+	                                        <th> &nbsp;</th>
+	                                        <th>Sales</th>
+	                                        <th>Plan</th>
+	                                        <th>Diff.</th>
+	                                        <th>P (+/-)</th>
+											<apex:repeat value="{!reportYear.q1List}" var="month" >
+											<tr>
+												<td><apex:outputText value="{!month.Name}" /></td> 
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalsales}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.plan}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+												<td class="percent"><apex:outputText value="{!month.pscore}" /></td>
+											</tr>
+											</apex:repeat>
+                                        </table>  
+                                   </div>    
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q2actuals}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q2plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q2difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.Q2pscore}</td>
+                            <td>
+                                <apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}Q2monthdetail');">>></apex:outputLink>
+                                    <div id="{!reportYear.Name}Q2monthdetail" class="popupWindow" style="display:none;" >
+	                                    <table class="custom">
+                                        	<th> &nbsp;</th>
+                                        	<th>Sales</th>
+                                        	<th>Plan</th>
+                                        	<th>Diff.</th>
+                                        	<th>P (+/-)</th>
+											<apex:repeat value="{!reportYear.q2List}" var="month" >
+											<tr>
+												<td><apex:outputText value="{!month.Name}" /></td> 
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalsales}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.plan}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+												<td class="percent"><apex:outputText value="{!month.pscore}" /></td>
+											</tr>
+											</apex:repeat>
+                                        </table>  
+                                   </div>    
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q3actuals}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q3plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q3difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.Q3pscore}</td>
+                            <td>
+                                <apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}Q3monthdetail');">>></apex:outputLink>
+                                    <div id="{!reportYear.Name}Q3monthdetail" class="popupWindow" style="display:none;" >
+	                                    <table class="custom">
+                                        	<th> &nbsp;</th>
+                                        	<th>Sales</th>
+                                        	<th>Plan</th>
+                                        	<th>Diff.</th>
+                                        	<th>P (+/-)</th>
+											<apex:repeat value="{!reportYear.q3List}" var="month" >
+											<tr>
+												<td><apex:outputText value="{!month.Name}" /></td> 
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalsales}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.plan}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+												<td class="percent"><apex:outputText value="{!month.pscore}" /></td>
+											</tr>
+											</apex:repeat>
+                                        </table>  
+                                   </div>    
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q4actuals}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q4plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.Q4difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.Q4pscore}</td>
+                            <td>
+                                <apex:outputLink styleClass="hoverlink" value="javascript:showMe('{!reportYear.Name}Q4monthdetail');">>></apex:outputLink>
+                                    <div id="{!reportYear.Name}Q4monthdetail" class="popupWindow" style="display:none;" >
+	                                    <table class="custom">
+                                        	<th> &nbsp;</th>
+                                        	<th>Sales</th>
+                                        	<th>Plan</th>
+                                        	<th>P (+/-)</th>
+											<apex:repeat value="{!reportYear.q4List}" var="month" >
+											<tr>
+												<td><apex:outputText value="{!month.Name}" /></td> 
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.totalsales}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.plan}"/></apex:outputText></td>
+												<td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!month.difference}"/></apex:outputText></td>
+												<td class="percent"><apex:outputText value="{!month.pscore}" /></td>
+											</tr>
+											</apex:repeat>
+                                        </table>  
+                                   </div>    
+                            </td>
+                        </tr>                        
+                    </table>
+
+                </td>                
+            </tr>
+            <tr>
+                <td><b>Total</b></td>
+                <td>
+                    <table class="custom">
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.lcyear.av}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.lcyear.renewal}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.lcyear.renewalpercent}%</td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.lcyear.newsales}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.lcyear.totalactual}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.lcyear.yoy}%</td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.lcyear.totalplan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.lcyear.difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.lcyear.pscore}</td>
+                            <td style="width: 15px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table class="custom">
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.ecsyear.totalsales}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.ecsyear.plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.ecsyear.difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.ecsyear.pscore}</td>
+                            <td style="width: 15px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table class="custom">                      
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.otheryear.totalsales}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.otheryear.plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.otheryear.difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.otheryear.pscore}</td>
+                            <td style="width: 15px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                	
+                    <table class="custom">                      
+                        <tr>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.actuals}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.plan}"/></apex:outputText></td>
+                            <td class="dollars"><apex:outputText value="{0,number,$#,###.##}"><apex:param value="{!reportYear.difference}"/></apex:outputText></td>
+                            <td class="percent">{!reportYear.pscore}</td>
+                        </tr>
+                    </table>
+                    
+                </td>                
+            </tr>                               
+        </table>    
+    </apex:pageBlock>
+</apex:repeat>
+</apex:outputPanel>
+
+</apex:page>

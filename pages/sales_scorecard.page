@@ -1,0 +1,463 @@
+<apex:page controller="SalesScorecardController">
+<style type="text/css">
+.hoverlink
+{ text-decoration:none; }
+
+.hoverlink a:hover {
+    font-weight: bold;
+    text-decoration: underline;
+}
+.odd {
+	background-color: #FCF7F7;
+}
+
+.even {
+	background-color: #E3DCDB;
+}
+
+.padded {
+	padding:5px;
+}
+
+.low {
+	background-color:red;
+}
+
+</style>
+
+<script type="text/javascript">
+    function toggleDisplay(sectionName){
+        var row =  document.getElementById(sectionName);
+        if (row.style.display == ''){ row.style.display = 'none';}
+        else {row.style.display = '';}      
+    }
+</script>
+<h1>
+Sales Monthly Dashboard
+</h1>
+
+<apex:form id="UserSelect">
+    Sales Person: <apex:selectList id="selectUser" value="{!salesUser}" size="1">
+		<apex:selectOptions value="{!salesStaffOptions}" />
+    </apex:selectList>
+    <apex:commandButton action="{!RunQuery}" rerender="metricsPanel" title="Report" id="Report" value="Report" status="loadStatus"/>
+<br /><br />
+</apex:form>
+       <apex:outputPanel style="text-align:center;" >
+            <apex:actionStatus id="loadStatus" >
+            <apex:facet name="start">
+             <h1>Refreshing....<img src="{!$Resource.spin}"/>  </h1>
+            </apex:facet>
+            </apex:actionStatus>
+        </apex:outputPanel>
+        
+<apex:outputPanel id="metricsPanel" layout="block" >
+	<apex:outputPanel id="innermetricsPanel" layout="block" rendered="{!renderPanel}">
+	
+	<table border="1" width="100%">
+	 <tr>
+	  <td width="6%"></td>
+	  <td width="47%"><b>As of the 1st of the month</b></td>
+	  <td><b>As of now</b></td>
+	 </tr>
+	 <tr> 
+	  <td>
+	  	<apex:outputText rendered="{!viewingOneUser}"><p><b>Individual Goal</b> <br/><br />{!goalNewMeetings}</p></apex:outputText>
+	  	<apex:outputText rendered="{! !viewingOneUser}"><p><b>Team Goal</b> <br/><br />40</p></apex:outputText>
+	  </td>
+	  <td>
+	   <table border="0">
+	    <!-- table for new meetings as of the 1st of the month -->
+	    <tr><td><b>New Meetings</b></td></tr>
+	    <!-- bgcolor="{!if (goalNewMeetings > startNewMeetings, '#FF9999', '#33FF66')}"><td>Current Month: {!startNewMeetings}</td></tr> -->
+	  	<tr><td>
+	    	<table id="newmtgsnapshots" > 
+			<apex:repeat value="{!mtgSnapshotResultsMap['New Meeting']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}newmtgsnapshots');"> {!monthResult.rCount}</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="{!monthResult.rCount}" /> 
+					<div id="{!monthResult.month}newmtgsnapshots"  style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="snap" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!snap['Date__c']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Activity_Type__c']}" />&nbsp;&nbsp;&nbsp;<apex:outputLink value="/{!snap['Activity_Id__c']}" target="_blank" rendered="{!snap['Activity_Id__c'] != null}" >view</apex:outputLink>
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity_Name__c']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity_Stage__c']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Assigned_To__c']}" />	
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>	
+	   </table>
+	  </td>
+	  <td>
+	   <table border="0">
+	    <!-- table for new meetings as of the current time -->
+	    <tr><td><b>New Meetings</b></td></tr>
+	  	<tr><td>
+	    	<table id="newmtgs" > 
+			<apex:repeat value="{!currentMtgResultsMap['New Meeting']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}newmtgs');"> {!monthResult.rCount}</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="{!monthResult.rCount}" />
+					<div id="{!monthResult.month}newmtgs"  style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="mtg" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!mtg['ActivityDate']}" />
+					</apex:column> 
+					<apex:column >	
+						<apex:outputLink target="_blank" value="/{!mtg['Id']}"><apex:outputField value="{!mtg['Type']}" /></apex:outputLink>
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!mtg['WhatId']}" /><apex:outputText style="font-color:red;background-color:yellow;font-weight:bold;" rendered="{!if( ISNULL(mtg['WhatId']),true,false)}" value="Missing Opportunity!" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!mtg['OwnerId']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!mtg['WhoId']}" />
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>	
+	   </table>
+	  </td>
+	 </tr>
+	 <tr> 
+	 <td>
+	 	<apex:outputText rendered="{!viewingOneUser}"><p><b>Individual Goal</b> <br/><br />{!goalFollowupMeetings}</p></apex:outputText>
+	 	<apex:outputText rendered="{! !viewingOneUser}"><p><b>Team Goal</b> <br/><br />35</p></apex:outputText>
+	 </td>
+	  <td> 
+	   <table border="0">
+	    <!-- table for followup meetings as of the 1st of the month -->
+	    <tr><td><b>Follow up Meetings</b></td></tr>
+	  	<tr><td>
+	    	<table id="followupmtgsnapshots" > 
+			<apex:repeat value="{!mtgSnapshotResultsMap['Follow up Meeting']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}followupmtgsnapshots');"> {!monthResult.rCount}</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="{!monthResult.rCount}" />
+					<div id="{!monthResult.month}followupmtgsnapshots" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="snap" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!snap['Date__c']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Activity_Type__c']}" />&nbsp;&nbsp;&nbsp;<apex:outputLink value="/{!snap['Activity_Id__c']}" target="_blank" rendered="{!snap['Activity_Id__c'] != null}" >view</apex:outputLink>
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity_Name__c']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity_Stage__c']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!snap['Assigned_To__c']}" />	
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>
+	   </table>
+	  </td>
+	  <td>
+	   <table border="0">
+	    <!-- table for followup meetings as of the current time -->
+	    <tr><td><b>Follow up Meetings</b></td></tr>
+	  	<tr><td>
+	    	<table id="followupmtgs" > 
+			<apex:repeat value="{!currentMtgResultsMap['Follow up Meeting']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}followupmtgs');"> {!monthResult.rCount}</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="{!monthResult.rCount}" />
+					<div  id="{!monthResult.month}followupmtgs" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="mtg" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!mtg['ActivityDate']}" />
+					</apex:column> 
+					<apex:column >	
+						<apex:outputLink target="_blank" value="/{!mtg['Id']}"><apex:outputField value="{!mtg['Type']}" /></apex:outputLink>
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!mtg['WhatId']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!mtg['OwnerId']}" />
+					</apex:column> 
+					<apex:column >
+						<apex:outputField value="{!mtg['WhoId']}" />
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>	
+	   </table>
+	  </td>
+	 </tr>
+	 <tr>
+	  <td>
+	  	<apex:outputText rendered="{!viewingOneUser}"><p><b>Individual Goal</b> <br/><br />{!goalUpsideOpportunities}</p></apex:outputText>
+	  	<apex:outputText rendered="{! !viewingOneUser}"><p><b>Team Goal</b> <br/><br />100</p></apex:outputText>
+	  </td>
+	  <td>
+	   <table>
+	    <!-- table for upside ops as of the 1st of the month -->
+	    <tr><td><b>Upside Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="upsidesnapshots"> 
+			<apex:repeat value="{!oppSnapshotResultsMap['Upside']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}upsidesnapshots');"> Total A.V. <b>${!monthResult.avTotal}</b>    count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div id="{!monthResult.month}upsidesnapshots" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="snap" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity__c']}" />
+					</apex:column>
+					<apex:column >
+					 	<apex:outputField value="{!snap['Close_Date__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity__r.Annualized_Value__c']}" />
+					</apex:column> 
+					<apex:column >
+						{!salesMap[snap['Opportunity_Owner__c']]}
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>	
+	   </table>
+	  </td>
+	  <td>
+	   <table>
+	    <!-- table for upside ops as of now -->
+	    <tr><td><b>Upside Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="upsideopps"> 
+			<apex:repeat value="{!currentOpsResultsMap['Upside']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}upsideopps');"> Total A.V. <b>${!monthResult.avTotal}</b>    count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div id="{!monthResult.month}upsideopps"  style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="opp" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputLink value="/{!opp['Id']}" target="_blank" >{!opp['Name']}</apex:outputLink>
+					</apex:column>
+					<apex:column > 
+						<apex:outputField value="{!opp['Close_Date_New__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['Annualized_Value__c']}" />
+					</apex:column> 					
+					<apex:column >
+						<apex:outputField value="{!opp['OwnerId']}" />
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>	
+	   </table>
+	  </td>
+	 </tr>
+	 <tr>
+	  <td>
+	  	<apex:outputText rendered="{!viewingOneUser}"><p><b>Individual Goal</b> <br/><br />{!goalQualifiedOpportunities}</p></apex:outputText>
+	  	<apex:outputText rendered="{! !viewingOneUser}"><p><b>Team Goal</b> <br/><br />35</p></apex:outputText>
+	  </td>
+	  <td>
+	   <table>
+	    <!-- table for new qualified ops as of the 1st of the month -->
+	    <tr><td><b>Qualified Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="qualifiedsnapshots"> 
+			<apex:repeat value="{!oppSnapshotResultsMap['Qualified']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}qualifiedsnapshots');"> Total A.V. <b>${!monthResult.avTotal}</b>   count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div id="{!monthResult.month}qualifiedsnapshots" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="snap" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity__c']}" />
+					</apex:column>
+					<apex:column >
+					 	<apex:outputField value="{!snap['Close_Date__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity__r.Annualized_Value__c']}" />
+					</apex:column> 
+					<apex:column >
+						{!salesMap[snap['Opportunity_Owner__c']]}
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>	
+	   </table>
+	  </td>
+	  <td>
+	   <table>
+	    <!-- table for new qualified ops as of now -->
+	    <tr><td><b>Qualified Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="qualifiedopps"> 
+			<apex:repeat value="{!currentOpsResultsMap['Qualified']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}qualifiedopps');"> Total A.V. <b>${!monthResult.avTotal}</b>    count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div  id="{!monthResult.month}qualifiedopps" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="opp" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputLink value="/{!opp['Id']}" target="_blank" >{!opp['Name']}</apex:outputLink>
+					</apex:column>
+					<apex:column > 
+						<apex:outputField value="{!opp['Close_Date_New__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['Annualized_Value__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['OwnerId']}" />
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>			
+	   </table> 
+	  </td>
+	 </tr>
+	 <tr>
+	  <td>
+	  	<apex:outputText rendered="{!viewingOneUser}"><p><b>Individual Goal</b> <br/><br />{!goalClosableOpportunities}</p></apex:outputText>
+	  	<apex:outputText rendered="{! !viewingOneUser}"><p><b>Team Goal</b> <br/><br />20</p></apex:outputText>
+	  </td>
+	  <td>
+	   <table>
+	    <!-- table for new closable ops as of the start of the month-->
+	    <tr><td><b>Closeable Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="closeablesnapshots"> 
+			<apex:repeat value="{!oppSnapshotResultsMap['Closeable']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}closeablesnapshots');"> Total A.V. <b>${!monthResult.avTotal}</b>    count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div  id="{!monthResult.month}closeablesnapshots" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="snap" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity__c']}" />
+					</apex:column>
+					<apex:column >
+					 	<apex:outputField value="{!snap['Close_Date__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!snap['Opportunity__r.Annualized_Value__c']}" />
+					</apex:column> 
+					<apex:column >
+						{!salesMap[snap['Opportunity_Owner__c']]}
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>
+	   </table>
+	  </td>
+	  <td> 
+	   <table>
+	    <!-- table for new closable ops as of now -->
+	    <tr><td><b>Closable Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="closeableopps"> 
+			<apex:repeat value="{!currentOpsResultsMap['Closeable']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}closeableopps');"> Total A.V. <b>${!monthResult.avTotal}</b>    count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div id="{!monthResult.month}closeableopps" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="opp" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputLink value="/{!opp['Id']}" target="_blank" >{!opp['Name']}</apex:outputLink>
+					</apex:column>
+					<apex:column > 
+						<apex:outputField value="{!opp['Close_Date_New__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['Annualized_Value__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['OwnerId']}" />
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>
+	   </table>
+	  </td>
+	 </tr>
+	 <tr>
+ 	 <td>
+ 	 	<apex:outputText rendered="{!viewingOneUser}"><p><b>Individual Goal</b> <br/><br />{!goalClosedWonOpportunities}</p></apex:outputText>
+ 	 	<apex:outputText rendered="{! !viewingOneUser}"><p><b>Team Goal</b> <br/><br />10</p></apex:outputText>
+ 	 </td>
+	  <td>
+	   <table>
+	    <!-- table for new closed won ops as of the start of the month -->   
+	    <tr><td><b>Closed Won Opportunities</b></td></tr>
+		<tr><td><em>N/A (A closed opportunity can never have a Closed Date set in the future).</em></td></tr> 
+	   </table>
+	  </td>
+	  <td>
+	   <table>
+	    <!-- table for new closed won ops as of now -->   
+	    <tr><td><b>Closed Won Opportunities</b></td></tr>
+	    <tr><td>
+	    	<table id="wonopps"> 
+			<apex:repeat value="{!currentOpsResultsMap['Closed Won']}" var="monthResult" >
+				<tr><td>
+					{!monthResult.MonthShort} :<apex:outputLink styleClass="hoverlink" rendered="{!monthResult.rCount != 0}"  value="javascript:toggleDisplay('{!monthResult.month}wonopps');"> Total A.V. <b>${!monthResult.avTotal}</b>    count({!monthResult.rCount})</apex:outputLink> <apex:outputText rendered="{!monthResult.rCount == 0}" value="Total A.V. $0 count(0)" />
+					<div id="{!monthResult.month}wonopps" style="display:none;" >
+					<apex:dataTable value="{!monthResult.theRecords}" cellpadding="5px;" var="opp" rowClasses="odd,even">
+					<apex:column >
+						<apex:outputLink value="/{!opp['Id']}" target="_blank" >{!opp['Name']}</apex:outputLink>
+					</apex:column>
+					<apex:column > 
+						<apex:outputField value="{!opp['Close_Date_New__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['Annualized_Value__c']}" />
+					</apex:column>
+					<apex:column >
+						<apex:outputField value="{!opp['OwnerId']}" />
+					</apex:column> 
+					</apex:dataTable>
+					</div>
+				</td></tr>
+			</apex:repeat>
+			</table>
+		</td></tr>
+	   </table>
+	  </td>
+	 </tr>
+	</table>
+	</apex:outputpanel>
+</apex:outputpanel>
+</apex:page>

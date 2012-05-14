@@ -1,0 +1,40 @@
+<apex:page controller="SubProjectWizardController" tabStyle="Projects__c" showHeader="true">
+    <apex:stylesheet value="{!$Resource.customLabelStyle}"/>
+    <apex:sectionHeader title="Sub-Project Creation Wizard" subtitle="For Creating AMM and MR sub-projects"/>
+    <apex:form >
+        <apex:pageBlock title="Please fill in all fields">
+        <apex:pageBlockButtons >
+            <apex:commandButton action="{!page2}" value="Next"/>
+        </apex:pageBlockButtons>
+            <apex:pageBlockSection collapsible="false" columns="2">    
+                <apex:pageBlockSectionItem >
+                    <apex:outputLabel escape="false" value="Select Members who participated (Ctrl+click to select multiple Members)" for="memberSelectList"/>
+                    <apex:selectList value="{!sel}" multiselect="true" id="memberSelectList" size="30">
+                        <apex:selectOptions value="{!MemberOptions}"/>
+                    </apex:selectList>
+                </apex:pageBlockSectionItem>
+                <apex:pageBlockSectionItem >
+                    <apex:pageBlockSection columns="2">
+                                           
+                        <!---<apex:outputField id="subProjectRecordType" value="{!rType.Name}" title="Record Type" />--->
+                                                        
+                        <apex:inputField id="subProductName" value="{!master.Product__c}"/>
+                        <apex:outputText ></apex:outputText>
+                        <apex:inputField id="subProductDiv" value="{!master.Divisions__c}"/>                       
+                        <apex:outputText ></apex:outputText>
+                        <apex:outputLabel value="Master Project Name" for="masterProjectName" styleClass="labelbold"/>
+                        <apex:outPuttext id="masterProjectName" title="Master Project Name" value="{!master.Name}"/>
+
+                        <!---<apex:outputLabel escape="false" value="Record Type" for="rtSelect" styleClass="labelbold"/>
+                        <apex:selectList title="Record Type" value="{!rType.Id}" multiselect="false" id="rtSelect" >                      
+                            <apex:selectOptions value="{!RecordTypeOptions}"/>
+                        </apex:selectList>                            ---> 
+                        <apex:outputLabel value="Program" for="masterProgram" styleClass="labelbold"/>
+                        <apex:outPuttext id="masterProgram" value="{!master.Programs__c}"></apex:outputText>                        
+
+                    </apex:pageBlockSection>
+                </apex:pageBlockSectionItem>
+            </apex:pageBlockSection> 
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>
